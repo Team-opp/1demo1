@@ -1,0 +1,1335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RadTemplates — Interactive Guided Tour v5</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:#060810;color:#fff;display:flex;flex-direction:column;height:100vh;overflow:hidden}
+
+#ctrlBar{background:#1e293b;border-bottom:2px solid #334155;padding:9px 16px;display:flex;align-items:center;gap:9px;flex-shrink:0;z-index:9999}
+#ctrlBar h1{font-size:13px;font-weight:700;color:#e2e8f0;flex-shrink:0}
+.cbtn{font-size:12px;padding:6px 13px;border-radius:6px;border:1px solid #475569;background:#1e293b;color:#e2e8f0;cursor:pointer;font-weight:600;white-space:nowrap;transition:background .15s}
+.cbtn:hover{background:#334155}.cbtn.pri{background:#1d4ed8;border-color:#1d4ed8}.cbtn.pri:hover{background:#1e40af}.cbtn:disabled{opacity:.35;cursor:default}
+.spd{display:flex;align-items:center;gap:5px;font-size:11px;color:#94a3b8;white-space:nowrap}
+#spdSlider{width:80px;accent-color:#3b82f6}
+#spdVal{min-width:30px;font-weight:700;color:#e2e8f0;font-size:11px}
+#progWrap{flex:1;height:5px;background:#334155;border-radius:3px;overflow:hidden;min-width:60px}
+#progFill{height:100%;width:0%;background:linear-gradient(90deg,#3b82f6,#60a5fa);border-radius:3px;transition:width .4s}
+#stepCtr{font-size:11px;color:#64748b;white-space:nowrap;flex-shrink:0}
+#voiceStatus{font-size:10px;color:#4b5563;white-space:nowrap;flex-shrink:0;max-width:140px;overflow:hidden;text-overflow:ellipsis}
+
+#stage{flex:1;display:flex;align-items:center;justify-content:center;background:radial-gradient(ellipse at center,#0d1424 0%,#040608 100%);padding:10px;overflow:hidden}
+#device{position:relative;width:1020px;max-width:100%;height:538px;border-radius:10px;overflow:hidden;box-shadow:0 28px 70px rgba(0,0,0,.85),0 0 0 1px #1e293b;flex-shrink:0}
+
+.screen{position:absolute;inset:0;display:none;overflow:hidden;font-family:'Segoe UI',system-ui,sans-serif}
+.screen.active{display:flex;flex-direction:column}
+
+.hdr{background:#2c3e50;color:#fff;padding:12px 24px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
+.hdr h1{font-size:15px;font-weight:700;margin:0}
+.hdr-sub{font-size:10px;color:rgba(255,255,255,.5);margin-top:1px}
+.hdr-btns{display:flex;gap:7px;align-items:center}
+.hbtn{padding:6px 13px;border-radius:5px;border:none;font-size:11px;font-weight:700;cursor:pointer;color:#fff;white-space:nowrap}
+
+.emp-tb{background:#34495e;padding:8px 16px;display:flex;align-items:center;gap:7px;flex-shrink:0;flex-wrap:nowrap;overflow-x:auto}
+.mic-btn{background:#e74c3c;color:#fff;border:none;border-radius:50%;width:36px;height:36px;cursor:pointer;font-size:16px;flex-shrink:0}
+.etab{padding:7px 14px;background:#3498db;color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:11px;font-weight:600;white-space:nowrap}
+.etab.active{background:#27ae60}
+.ectr{background:#e74c3c;color:#fff;padding:1px 5px;border-radius:10px;font-size:9px;font-weight:700;margin-left:3px}
+.esel{padding:7px 12px;background:#3498db;color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:11px;font-weight:600}
+.eevt{padding:7px 12px;background:#27ae60;color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:11px;font-weight:700}
+.gbtn{padding:5px 10px;background:#95a5a6;color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:10px}
+.gbtn.active{background:#27ae60}
+
+.hr-tb{background:#34495e;padding:8px 18px;display:flex;align-items:center;gap:6px;flex-shrink:0;flex-wrap:nowrap;overflow-x:auto}
+.hr-tab{padding:7px 12px;background:#3498db;color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:11px;font-weight:600;white-space:nowrap}
+.hr-tab.active{background:#27ae60}
+
+#capBar{background:linear-gradient(135deg,#1e3a5f,#1e40af);padding:11px 20px;display:flex;align-items:center;gap:11px;flex-shrink:0;min-height:54px}
+#capIcon{font-size:19px;flex-shrink:0}
+#capTxt{flex:1;font-size:13px;color:#e2e8f0;line-height:1.55}
+#capStep{font-size:11px;color:#93c5fd;font-weight:700;flex-shrink:0;white-space:nowrap}
+
+#overlay{position:absolute;inset:0;pointer-events:none;z-index:500}
+#spotlight{position:absolute;border-radius:8px;box-shadow:0 0 0 9999px rgba(0,0,0,.58);transition:all .45s cubic-bezier(.4,0,.2,1);opacity:0;pointer-events:none;z-index:501}
+#glowRing{position:absolute;border-radius:8px;border:3px solid #facc15;box-shadow:0 0 0 4px rgba(250,204,21,.2),0 0 22px rgba(250,204,21,.55);animation:gp 1.2s ease-in-out infinite;opacity:0;transition:all .45s;pointer-events:none;z-index:502}
+@keyframes gp{0%,100%{box-shadow:0 0 0 4px rgba(250,204,21,.2),0 0 22px rgba(250,204,21,.55)}50%{box-shadow:0 0 0 10px rgba(250,204,21,.08),0 0 38px rgba(250,204,21,.75)}}
+#arrWrap{position:absolute;pointer-events:none;z-index:503;opacity:0;transition:opacity .3s;display:flex;flex-direction:column;align-items:center;gap:3px}
+#arrLabel{background:#1e40af;color:#fff;font-size:11px;font-weight:700;padding:4px 11px;border-radius:18px;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,.35)}
+@keyframes ab{0%,100%{transform:translateY(0)}50%{transform:translateY(6px)}}
+#arrWrap.bounce{animation:ab .85s ease-in-out infinite}
+
+.srch-drop{position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid #90caf9;border-top:none;border-radius:0 0 6px 6px;box-shadow:0 4px 12px rgba(0,0,0,.12);z-index:99}
+.srch-drop-item{padding:8px 11px;font-size:11px;cursor:pointer;color:#2c3e50;border-bottom:1px solid #f0f4f8;display:flex;justify-content:space-between;align-items:center}
+.srch-drop-item.active{background:#e3f2fd;color:#1e3a5f;font-weight:700}
+.mod-tag{font-size:9px;font-weight:700;padding:1px 6px;border-radius:8px;color:#fff}
+.srch-pag{display:flex;align-items:center;justify-content:center;gap:6px;padding:6px;background:#f8fafc;border-top:1px solid #e3f2fd}
+.srch-pag button{background:#3498db;color:#fff;border:none;border-radius:4px;padding:3px 8px;font-size:10px;cursor:pointer}
+.srch-pag span{font-size:10px;color:#64748b}
+
+.modal-overlay{position:absolute;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:50}
+.score-legend{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:10px}
+.score-row{display:flex;align-items:center;gap:7px;background:#f8fafc;border-radius:6px;padding:7px 9px;border-left:3px solid}
+.score-row .s-num{font-size:13px;font-weight:800;min-width:18px}
+.score-row .s-lbl{font-size:10px;font-weight:600}
+.score-row .s-desc{font-size:9px;color:#6b7280;line-height:1.3}
+
+.float-dash{position:absolute;right:0;top:0;bottom:0;width:200px;background:linear-gradient(135deg,#667eea,#764ba2);padding:14px 12px;display:flex;flex-direction:column;gap:8px;z-index:10}
+.float-badge{background:rgba(255,255,255,.15);padding:10px;border-radius:10px;cursor:pointer;display:flex;justify-content:space-between;align-items:center}
+.float-badge span{color:#fff;font-size:11px;display:flex;align-items:center;gap:6px}
+.fb-num{padding:3px 9px;border-radius:10px;font-size:12px;font-weight:700;color:#fff}
+.fb-red{background:#e74c3c}.fb-orange{background:#f39c12}.fb-green{background:#27ae60}
+
+.typing-cursor{display:inline-block;width:2px;height:12px;background:#2c3e50;margin-left:1px;animation:blink .7s infinite;vertical-align:middle}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+
+.slash-drop{background:#fff;border:2px solid #3498db;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.18);overflow:hidden;margin-top:4px}
+.slash-drop-item{padding:9px 13px;font-size:12px;color:#2c3e50;border-bottom:1px solid #f0f4f8;display:flex;justify-content:space-between;align-items:center;cursor:pointer}
+.slash-drop-item.active{background:#e3f2fd;border-left:3px solid #3498db;font-weight:700;color:#1e3a5f}
+.slash-drop-item .mt{font-size:9px;font-weight:700;padding:1px 6px;border-radius:8px;color:#fff;background:#e74c3c}
+</style>
+</head>
+<body>
+
+<div id="ctrlBar">
+  <h1>🏥 RadTemplates — Guided Tour</h1>
+  <button class="cbtn pri" id="playBtn" onclick="ctrlPlay()">▶ Play</button>
+  <button class="cbtn" id="pauseBtn" onclick="ctrlPause()" disabled>⏸ Pause</button>
+  <button class="cbtn" onclick="ctrlRestart()">↺ Restart</button>
+  <div class="spd"><span>Speed</span><input type="range" id="spdSlider" min="0.6" max="1.6" step="0.1" value="1.0" oninput="onSpd(this)"><span id="spdVal">1.0x</span></div>
+  <div id="progWrap"><div id="progFill"></div></div>
+  <span id="stepCtr">0 / 0</span>
+  <span id="voiceStatus">Loading…</span>
+</div>
+
+<div id="stage"><div id="device">
+
+<!-- ══ S1: LOGIN ══ -->
+<div class="screen" id="s-login" style="background:linear-gradient(135deg,#0f2027 0%,#203a43 50%,#2c5364 100%);justify-content:center;align-items:center">
+  <div style="background:rgba(255,255,255,.13);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,.2);padding:44px 40px;border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,.4);width:380px">
+    <h1 id="s1-title" style="text-align:center;color:#fff;font-size:24px;font-weight:700;margin-bottom:30px">🏥 Radiology Reporting Reimagined</h1>
+    <div style="margin-bottom:18px">
+      <label style="display:block;margin-bottom:7px;font-weight:600;color:#fff;font-size:12px;text-transform:uppercase;letter-spacing:.5px">Employee Code</label>
+      <input id="s1-empInput" type="text" placeholder="Enter your employee code" style="width:100%;padding:13px 16px;border:2px solid rgba(255,255,255,.3);border-radius:11px;font-size:15px;background:rgba(255,255,255,.9);color:#2c3e50;text-align:center;font-weight:700">
+    </div>
+    <button id="s1-accessBtn" style="width:100%;padding:14px;background:linear-gradient(135deg,#3498db,#2ecc71);color:#fff;border:none;border-radius:11px;font-size:15px;font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:1px;box-shadow:0 8px 20px rgba(52,152,219,.4)">Access System</button>
+    <div style="text-align:center;margin-top:16px"><small><a href="#" style="color:rgba(255,255,255,.7);text-decoration:none;font-size:12px">Admin Access</a></small></div>
+  </div>
+</div>
+
+<!-- ══ S2: HEADER / TOOLBAR ══ -->
+<div class="screen" id="s-header" style="background:#ecf0f1">
+  <div class="hdr" id="s2-hdr">
+    <div><h1>Welcome, Dr. Smith</h1><div class="hdr-sub">v3.2.1</div></div>
+    <div class="hdr-btns" id="s2-hdrbtns">
+      <button class="hbtn" style="background:#9b59b6;font-size:11px" id="s2-tools">🔧 Tools</button>
+      <button class="hbtn" style="background:#00a86b;font-size:11px" id="s2-whatsnew">✨ What's New</button>
+      <button class="hbtn" style="background:#e74c3c;font-size:11px">Logout</button>
+    </div>
+  </div>
+  <div id="s2-emptb" class="emp-tb">
+    <button class="mic-btn">🎤</button>
+    <button class="etab">📊 My Stats</button>
+    <button class="etab" style="position:relative">QA Board <span class="ectr">3</span></button>
+    <button class="etab" style="position:relative">Peer Review <span style="background:#f39c12;color:#fff;padding:1px 5px;border-radius:10px;font-size:9px;font-weight:700;margin-left:3px">2</span></button>
+    <button class="etab" id="s2-templates">Templates ▼</button>
+    <button class="eevt" id="s2-events">📅 Events</button>
+    <span style="color:rgba(255,255,255,.7);font-size:11px">Gender:</span>
+    <button class="gbtn active">♂ Male</button>
+    <button class="gbtn">♀ Female</button>
+  </div>
+  <div id="s2-admin" style="display:none"></div>
+  <div style="flex:1;background:#f5f7fa;display:flex;align-items:center;justify-content:center">
+    <div style="text-align:center;color:#bdc3c7"><div style="font-size:40px">🏠</div><div style="font-size:13px;margin-top:6px">Dashboard</div></div>
+  </div>
+</div>
+
+<!-- ══ S3: TAB COUNTERS ══ -->
+<div class="screen" id="s-ctrs" style="background:#f0f4f8">
+  <div class="hdr" style="padding:10px 20px"><h1 style="font-size:14px">🏥 RadTemplates</h1></div>
+  <div class="emp-tb" id="s-ctrs-tb">
+    <button class="mic-btn" style="width:34px;height:34px;font-size:14px">🎤</button>
+    <button class="etab">My Stats</button>
+    <button class="etab" style="position:relative" id="qa-tab-ctr">QA Board <span style="background:#e74c3c;color:#fff;padding:1px 5px;border-radius:10px;font-size:9px;font-weight:700;margin-left:3px" id="qa-ctr-badge">3</span></button>
+    <button class="etab" style="position:relative" id="pr-tab-ctr">Peer Review <span style="background:#f39c12;color:#fff;padding:1px 5px;border-radius:10px;font-size:9px;font-weight:700;margin-left:3px" id="pr-ctr-badge">2</span></button>
+    <button class="etab">Templates ▼</button>
+    <button class="eevt">📅 Events</button>
+    <button class="gbtn active">♂ Male</button>
+    <button class="gbtn">♀ Female</button>
+  </div>
+  <div style="flex:1;padding:16px 26px;overflow-y:auto;background:#f0f4f8">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;max-width:720px">
+      <div id="qa-ctr-card" style="background:#fff;border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,.08);padding:16px;border-left:5px solid #e74c3c">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+          <span style="background:#e74c3c;color:#fff;border-radius:10px;padding:2px 10px;font-size:14px;font-weight:800">3</span>
+          <strong style="font-size:13px;color:#2c3e50">QA Board Counter</strong>
+        </div>
+        <p style="font-size:11px;color:#374151;line-height:1.65;margin:0">The <strong style="color:#e74c3c">red badge</strong> shows how many QA cases are pending your response. These are quality assessments assigned by HR that require you to Agree, Dispute, or Respond before the due date.</p>
+        <p style="font-size:11px;color:#64748b;margin-top:8px;line-height:1.5">When the count reaches zero the badge disappears. Overdue cases turn the tab border red as an urgent alert.</p>
+      </div>
+      <div id="pr-ctr-card" style="background:#fff;border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,.08);padding:16px;border-left:5px solid #f39c12">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+          <span style="background:#f39c12;color:#fff;border-radius:10px;padding:2px 10px;font-size:14px;font-weight:800">2</span>
+          <strong style="font-size:13px;color:#2c3e50">Peer Review Counter</strong>
+        </div>
+        <p style="font-size:11px;color:#374151;line-height:1.65;margin:0">The <strong style="color:#f39c12">orange badge</strong> shows pending <strong>First Reader assignments</strong> — external peer review cases where a reviewer has scored your report and you must now agree, disagree, or escalate.</p>
+        <p style="font-size:11px;color:#64748b;margin-top:8px;line-height:1.5">Missing the deadline affects your compliance score in My Stats.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ S4: FLOATING DASHBOARD ══ -->
+<div class="screen" id="s-float" style="background:#f0f4f8">
+  <div class="hdr" style="padding:10px 20px"><h1 style="font-size:14px">🏥 RadTemplates</h1></div>
+  <div class="emp-tb" style="padding:6px 14px">
+    <button class="mic-btn" style="width:30px;height:30px;font-size:13px">🎤</button>
+    <button class="etab" style="font-size:10px;padding:5px 10px">📊 My Stats</button>
+    <button class="etab" style="font-size:10px;padding:5px 10px">QA Board</button>
+    <button class="etab" style="font-size:10px;padding:5px 10px">Peer Review</button>
+    <select class="esel" style="font-size:10px;padding:5px 10px"><option>US ▼</option></select>
+  </div>
+  <div style="flex:1;display:grid;grid-template-columns:200px 1fr 200px;gap:10px;padding:10px 12px;overflow:hidden;position:relative">
+    <div style="background:#fff;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.08);padding:12px;overflow:hidden">
+      <h3 style="font-size:11px;color:#2c3e50;border-bottom:2px solid #3498db;padding-bottom:4px;margin-bottom:8px">US Templates</h3>
+      <ul style="list-style:none;padding:0">
+        <li style="padding:7px 9px;background:#dbeafe;border-radius:4px;margin-bottom:3px;font-size:11px;border-left:3px solid #3b82f6;font-weight:600">US Abdomen ✓</li>
+        <li style="padding:7px 9px;background:#ecf0f1;border-radius:4px;margin-bottom:3px;font-size:11px">US Pelvis</li>
+        <li style="padding:7px 9px;background:#ecf0f1;border-radius:4px;margin-bottom:3px;font-size:11px">US Thyroid</li>
+      </ul>
+    </div>
+    <div style="background:#fff;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.08);padding:12px;font-family:'Courier New',monospace;font-size:11px;color:#2c3e50;line-height:1.7;overflow:hidden">
+      <strong>ULTRASOUND ABDOMEN</strong><br><br>
+      <strong>TECHNIQUE:</strong> Grey-scale and colour Doppler.<br><br>
+      <strong>LIVER:</strong> Normal in size and echogenicity.<br><br>
+      <strong>KIDNEYS:</strong> Normal bilaterally. No hydronephrosis.<br><br>
+      <strong>IMPRESSION:</strong> Normal ultrasound examination.
+    </div>
+    <div id="s-float-panel" class="float-dash">
+      <h4 style="color:#fff;font-size:12px;font-weight:600;margin-bottom:4px">📊 My Dashboard</h4>
+      <div class="float-badge" id="float-qa"><span>📋 QA Tasks</span><span class="fb-num fb-red">3</span></div>
+      <div class="float-badge" id="float-pr"><span>🔍 Peer Reviews</span><span class="fb-num fb-orange">2</span></div>
+      <div class="float-badge" id="float-fb"><span>💬 PR Feedback</span><span class="fb-num" style="background:#9b59b6">1</span></div>
+      <div class="float-badge" id="float-rpt"><span>📝 Reports Today</span><span class="fb-num fb-green">12</span></div>
+      <div style="background:rgba(255,255,255,.1);border-radius:8px;padding:8px;margin-top:4px">
+        <div style="font-size:9px;color:rgba(255,255,255,.6);font-weight:700;text-transform:uppercase;margin-bottom:6px">Last 7 Days</div>
+        <div style="display:flex;align-items:flex-end;gap:3px;height:38px">
+          <div style="flex:1;background:rgba(255,255,255,.5);border-radius:1px 1px 0 0;height:40%"></div>
+          <div style="flex:1;background:rgba(255,255,255,.5);border-radius:1px 1px 0 0;height:65%"></div>
+          <div style="flex:1;background:rgba(255,255,255,.5);border-radius:1px 1px 0 0;height:55%"></div>
+          <div style="flex:1;background:rgba(255,255,255,.5);border-radius:1px 1px 0 0;height:80%"></div>
+          <div style="flex:1;background:#fff;border-radius:1px 1px 0 0;height:90%"></div>
+          <div style="flex:1;background:rgba(255,255,255,.5);border-radius:1px 1px 0 0;height:60%"></div>
+          <div style="flex:1;background:rgba(255,255,255,.5);border-radius:1px 1px 0 0;height:70%"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ S5: TEMPLATE EDITOR — FULL LAYOUT ══ -->
+<div class="screen" id="s-tpl" style="background:#f0f4f8">
+  <div class="hdr" style="padding:9px 18px"><h1 style="font-size:13px">🏥 RadTemplates</h1>
+    <div class="hdr-btns"><button class="hbtn" style="background:#00a86b;font-size:10px">✨ What's New</button><button class="hbtn" style="background:#9b59b6;font-size:10px">🔧 Tools ▼</button><button class="hbtn" style="background:#e74c3c;font-size:10px">Logout</button></div>
+  </div>
+  <div class="emp-tb" style="padding:5px 12px">
+    <button class="mic-btn" id="s3-mic" style="width:30px;height:30px;font-size:13px">🎤</button>
+    <button class="etab" style="font-size:10px;padding:5px 10px">📊 My Stats</button>
+    <button class="etab" style="font-size:10px;padding:5px 10px">QA Board <span class="ectr">3</span></button>
+    <button class="etab" style="font-size:10px;padding:5px 10px">Peer Review</button>
+    <select class="esel" id="s3-modality" style="font-size:10px;padding:5px 10px"><option>US ▼</option><option>CT</option><option>MRI</option></select>
+    <button class="eevt" style="font-size:10px;padding:5px 10px">📅 Events</button>
+    <button class="gbtn active" style="font-size:10px;padding:4px 8px">♂ Male</button>
+    <button class="gbtn" style="font-size:10px;padding:4px 8px">♀ Female</button>
+  </div>
+  <div style="flex:1;display:grid;grid-template-columns:210px 1fr 220px;gap:10px;padding:8px 12px;overflow:hidden">
+    <!-- LEFT SIDEBAR -->
+    <div id="s3-sidebar" style="background:#fff;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.08);padding:12px;overflow-y:auto;display:flex;flex-direction:column;gap:8px">
+      <div style="background:#fff3cd;border:2px solid #f39c12;border-radius:7px;padding:8px 10px;cursor:pointer">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <strong style="color:#856404;font-size:11px">📝 Notes Board</strong>
+          <span style="background:#f39c12;color:#fff;border-radius:10px;padding:1px 6px;font-size:9px;font-weight:700">2</span>
+        </div>
+      </div>
+      <div style="background:#e3f2fd;padding:8px;border:2px solid #3498db;border-radius:7px">
+        <input id="s3-search" type="text" placeholder="🔍 Search templates… (Ctrl+K)" style="width:100%;padding:6px 9px;border:1px solid #90caf9;border-radius:4px;font-size:10px">
+      </div>
+      <h3 style="font-size:10px;color:#2c3e50;border-bottom:2px solid #3498db;padding-bottom:3px">Recent Templates</h3>
+      <ul style="list-style:none;padding:0">
+        <li style="padding:7px 9px;background:#ecf0f1;border-radius:4px;margin-bottom:3px;font-size:10px;cursor:pointer">US Abdomen</li>
+        <li style="padding:7px 9px;background:#ecf0f1;border-radius:4px;margin-bottom:3px;font-size:10px;cursor:pointer">US Pelvis</li>
+      </ul>
+      <h3 id="s3-cattitle" style="font-size:10px;color:#2c3e50;border-bottom:2px solid #3498db;padding-bottom:3px">US Templates</h3>
+      <ul id="s3-tpllist" style="list-style:none;padding:0">
+        <li style="padding:7px 9px;background:#ecf0f1;border-radius:4px;margin-bottom:3px;font-size:10px;cursor:pointer">US KUB</li>
+        <li style="padding:7px 9px;background:#ecf0f1;border-radius:4px;margin-bottom:3px;font-size:10px;cursor:pointer">US Thyroid</li>
+        <li style="padding:7px 9px;background:#ecf0f1;border-radius:4px;margin-bottom:3px;font-size:10px;cursor:pointer">US Obstetric</li>
+        <li style="padding:7px 9px;background:#ecf0f1;border-radius:4px;margin-bottom:3px;font-size:10px;cursor:pointer">US Breast</li>
+      </ul>
+    </div>
+    <!-- EDITOR -->
+    <div id="s3-editor" style="background:#fff;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.08);padding:9px;display:flex;flex-direction:column;gap:6px;overflow:hidden">
+      <div id="s3-tbar" style="display:flex;gap:5px;flex-wrap:wrap;align-items:center">
+        <button style="background:#3498db;color:#fff;border:none;border-radius:4px;padding:5px 9px;font-size:10px;font-weight:700;cursor:pointer">📝 Format</button>
+        <button style="background:#8b5cf6;color:#fff;border:none;border-radius:4px;padding:5px 9px;font-size:10px;font-weight:700;cursor:pointer" id="s3-ai">🤖 AI</button>
+        <button style="background:#27ae60;color:#fff;border:none;border-radius:4px;padding:5px 9px;font-size:10px;font-weight:700;cursor:pointer">📋 Copy</button>
+        <button id="s3-cnc" style="background:#27ae60;color:#fff;border:none;border-radius:4px;padding:5px 9px;font-size:10px;font-weight:700;cursor:pointer">📊 Copy &amp; Count</button>
+        <select id="s3-inst" style="padding:5px 7px;border:2px solid #3498db;border-radius:4px;font-size:10px;flex:1;min-width:100px;background:#fff"><option>Select Institution</option><option>City Hospital</option></select>
+        <input id="s3-accno" type="text" placeholder="Accession No. (required)" style="padding:5px 9px;border:2px solid #3498db;border-radius:4px;font-size:10px;width:140px">
+        <button style="background:#e74c3c;color:#fff;border:none;border-radius:4px;padding:5px 8px;font-size:10px;font-weight:700;cursor:pointer">🗑️ Clear</button>
+      </div>
+      <div id="s3-fmtbar" style="background:#f8f9fa;padding:6px 8px;border-radius:6px;border:1px solid #dee2e6;display:flex;gap:4px;flex-wrap:wrap;align-items:center;justify-content:space-between">
+        <div style="display:flex;gap:3px;align-items:center">
+          <select style="padding:3px 4px;border:1px solid #ced4da;border-radius:3px;font-size:10px;width:46px"><option>14px</option></select>
+          <button style="padding:2px 6px;background:#fff;border:1px solid #ced4da;border-radius:3px;font-size:11px;font-weight:700">B</button>
+          <button style="padding:2px 6px;background:#fff;border:1px solid #ced4da;border-radius:3px;font-size:11px;font-style:italic">I</button>
+          <button style="padding:2px 6px;background:#fff;border:1px solid #ced4da;border-radius:3px;font-size:11px;text-decoration:underline">U</button>
+          <span style="width:1px;height:14px;background:#ced4da;margin:0 2px;display:inline-block"></span>
+          <button style="padding:2px 5px;background:#fff;border:1px solid #ced4da;border-radius:3px;font-size:9px">⬅️</button>
+          <button style="padding:2px 5px;background:#fff;border:1px solid #ced4da;border-radius:3px;font-size:9px">↔️</button>
+          <button style="padding:2px 5px;background:#fff;border:1px solid #ced4da;border-radius:3px;font-size:9px">➡️</button>
+          <span style="width:1px;height:14px;background:#ced4da;margin:0 2px;display:inline-block"></span>
+          <button style="padding:2px 5px;background:#fff;border:1px solid #ced4da;border-radius:3px;font-size:9px">• List</button>
+          <button style="padding:2px 5px;background:#fff;border:1px solid #ced4da;border-radius:3px;font-size:9px">AB</button>
+        </div>
+        <div style="display:flex;gap:4px;align-items:center">
+          <select id="s3-autosave" style="padding:3px 5px;border:1px solid #ced4da;border-radius:3px;font-size:9px"><option>30s auto-save</option></select>
+          <button style="background:#17a2b8;color:#fff;border:none;padding:3px 7px;border-radius:3px;font-size:9px;font-weight:700">💾 Save</button>
+          <button id="s3-loaddraft" style="background:#6c757d;color:#fff;border:none;padding:3px 7px;border-radius:3px;font-size:9px;font-weight:700">📂 Load ▼</button>
+        </div>
+      </div>
+      <div id="s3-texteditor" style="flex:1;background:#fff;border:2px solid #e0e0e0;border-radius:6px;padding:12px 14px;font-family:'Courier New',monospace;font-size:11px;color:#2c3e50;line-height:1.7;overflow-y:auto">
+        <strong>ULTRASOUND ABDOMEN</strong><br><br>
+        <strong>TECHNIQUE:</strong> Grey-scale and colour Doppler examination.<br><br>
+        <strong>LIVER:</strong> Normal in size and echogenicity. No focal lesion. Portal vein patent.<br><br>
+        <strong>GALLBLADDER:</strong> Normal. No calculi or wall thickening.<br><br>
+        <strong>KIDNEYS:</strong> Normal bilaterally. No hydronephrosis or calculi.<br><br>
+        <strong>IMPRESSION:</strong><br>Normal ultrasound examination of the abdomen.
+      </div>
+    </div>
+    <!-- RIGHT SIDEBAR -->
+    <div id="s3-rightsidebar" style="display:flex;flex-direction:column;gap:8px;overflow-y:auto">
+      <div style="background:linear-gradient(135deg,#667eea,#764ba2);border-radius:10px;padding:11px;box-shadow:0 4px 12px rgba(0,0,0,.2)">
+        <h3 style="color:#fff;font-size:11px;margin:0 0 8px;display:flex;justify-content:space-between;align-items:center"><span>📊 Last 7 Days</span><span style="background:rgba(255,255,255,.25);padding:1px 7px;border-radius:10px;font-size:10px">47</span></h3>
+        <div style="display:flex;flex-direction:column;gap:4px;margin-bottom:8px">
+          <div style="display:flex;justify-content:space-between;font-size:10px;color:#fff"><span>🔵 US</span><span style="font-weight:700">22</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:10px;color:#fff"><span>🟠 CT</span><span style="font-weight:700">14</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:10px;color:#fff"><span>🟣 MRI</span><span style="font-weight:700">8</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:10px;color:#fff"><span>⚪ XR</span><span style="font-weight:700">3</span></div>
+        </div>
+        <div style="background:rgba(255,255,255,.1);border-radius:6px;padding:6px;height:44px;display:flex;align-items:flex-end;gap:2px">
+          <div style="flex:1;background:rgba(255,255,255,.6);border-radius:2px 2px 0 0;height:40%"></div>
+          <div style="flex:1;background:rgba(255,255,255,.6);border-radius:2px 2px 0 0;height:65%"></div>
+          <div style="flex:1;background:rgba(255,255,255,.6);border-radius:2px 2px 0 0;height:55%"></div>
+          <div style="flex:1;background:rgba(255,255,255,.6);border-radius:2px 2px 0 0;height:80%"></div>
+          <div style="flex:1;background:rgba(255,255,255,.9);border-radius:2px 2px 0 0;height:90%"></div>
+          <div style="flex:1;background:rgba(255,255,255,.6);border-radius:2px 2px 0 0;height:70%"></div>
+          <div style="flex:1;background:rgba(255,255,255,.6);border-radius:2px 2px 0 0;height:60%"></div>
+        </div>
+      </div>
+      <div id="s3-mydash" style="background:linear-gradient(135deg,#667eea,#764ba2);border-radius:10px;padding:12px;box-shadow:0 4px 12px rgba(0,0,0,.2);color:#fff">
+        <h3 style="font-size:12px;font-weight:600;margin-bottom:10px">📊 My Dashboard</h3>
+        <div style="display:flex;flex-direction:column;gap:7px">
+          <div style="background:rgba(255,255,255,.15);padding:9px;border-radius:9px;display:flex;justify-content:space-between;align-items:center"><span style="font-size:11px">📋 QA Tasks</span><span style="background:#e74c3c;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700">3</span></div>
+          <div style="background:rgba(255,255,255,.15);padding:9px;border-radius:9px;display:flex;justify-content:space-between;align-items:center"><span style="font-size:11px">🔍 Peer Reviews</span><span style="background:#f39c12;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700">2</span></div>
+          <div style="background:rgba(255,255,255,.15);padding:9px;border-radius:9px;display:flex;justify-content:space-between;align-items:center"><span style="font-size:11px">📝 Reports Today</span><span style="background:#27ae60;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700">12</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ S6: SEARCH — sidebar Ctrl+K demo ══ -->
+<div class="screen" id="s-search" style="background:#f0f4f8">
+  <div class="hdr" style="padding:9px 18px"><h1 style="font-size:13px">🏥 RadTemplates</h1></div>
+  <div class="emp-tb" style="padding:5px 12px">
+    <button class="mic-btn" style="width:30px;height:30px;font-size:13px">🎤</button>
+    <button class="etab" style="font-size:10px;padding:5px 10px">📊 My Stats</button>
+    <button class="etab" style="font-size:10px;padding:5px 10px">QA Board</button>
+    <button class="etab" style="font-size:10px;padding:5px 10px">Peer Review</button>
+    <select class="esel" style="font-size:10px;padding:5px 10px"><option>CT ▼</option></select>
+  </div>
+  <div style="flex:1;display:grid;grid-template-columns:210px 1fr 220px;gap:10px;padding:8px 12px;overflow:hidden">
+    <div style="background:#fff;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.08);padding:12px;overflow:visible;position:relative">
+      <div style="background:#e3f2fd;padding:8px;margin-bottom:10px;border:2px solid #3498db;border-radius:7px;position:relative" id="srch-wrap">
+        <div style="position:relative">
+          <input id="srch-input" type="text" value="CT Head" style="width:100%;padding:6px 9px;border:1px solid #90caf9;border-radius:4px;font-size:11px;background:#fff">
+          <span class="typing-cursor"></span>
+        </div>
+        <div class="srch-drop" id="srch-drop">
+          <div class="srch-drop-item active">CT Head (Routine) <span class="mod-tag" style="background:#e74c3c">CT</span></div>
+          <div class="srch-drop-item">CT Head (Trauma) <span class="mod-tag" style="background:#e74c3c">CT</span></div>
+          <div class="srch-drop-item">CT Head (Post-op) <span class="mod-tag" style="background:#e74c3c">CT</span></div>
+          <div class="srch-drop-item">CT Head with Contrast <span class="mod-tag" style="background:#e74c3c">CT</span></div>
+          <div class="srch-drop-item">CT Head Perfusion <span class="mod-tag" style="background:#e74c3c">CT</span></div>
+          <div class="srch-pag"><button>◀</button><span>Page 1 of 2 · 8 results</span><button>▶</button></div>
+        </div>
+      </div>
+      <h3 style="font-size:10px;color:#2c3e50;border-bottom:2px solid #3498db;padding-bottom:3px;margin-bottom:6px">CT Templates</h3>
+      <ul style="list-style:none;padding:0">
+        <li style="padding:6px 9px;background:#ecf0f1;border-radius:4px;margin-bottom:3px;font-size:10px">CT Chest</li>
+        <li style="padding:6px 9px;background:#ecf0f1;border-radius:4px;margin-bottom:3px;font-size:10px">CT Abdomen</li>
+        <li style="padding:6px 9px;background:#ecf0f1;border-radius:4px;margin-bottom:3px;font-size:10px">CT KUB</li>
+      </ul>
+    </div>
+    <div style="background:#fff;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.08);padding:12px;display:flex;flex-direction:column">
+      <div style="font-size:11px;color:#94a3b8;font-style:italic;margin-bottom:8px">← Click any result to load it into the editor</div>
+      <div style="flex:1;border:2px dashed #e2e8f0;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#cbd5e1;font-size:12px">Report editor ready</div>
+    </div>
+    <div style="background:linear-gradient(135deg,#667eea,#764ba2);border-radius:10px;padding:11px;color:#fff">
+      <h3 style="font-size:11px;margin:0 0 8px">📊 Last 7 Days</h3>
+      <div style="font-size:22px;font-weight:800;text-align:center">47</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ S7: SLASH SHORTCUT — // in editor ══ -->
+<div class="screen" id="s-slash" style="background:#f0f4f8">
+  <div class="hdr" style="padding:9px 18px"><h1 style="font-size:13px">🏥 RadTemplates</h1></div>
+  <div class="emp-tb" style="padding:5px 12px">
+    <button class="mic-btn" style="width:30px;height:30px;font-size:13px">🎤</button>
+    <button class="etab" style="font-size:10px;padding:5px 10px">📊 My Stats</button>
+    <select class="esel" style="font-size:10px;padding:5px 10px"><option>CT ▼</option></select>
+  </div>
+  <div style="flex:1;display:grid;grid-template-columns:210px 1fr 220px;gap:10px;padding:8px 12px;overflow:hidden">
+    <div style="background:#fff;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.08);padding:12px;overflow:hidden">
+      <h3 style="font-size:10px;color:#2c3e50;border-bottom:2px solid #3498db;padding-bottom:3px;margin-bottom:6px">CT Templates</h3>
+      <ul style="list-style:none;padding:0">
+        <li style="padding:6px 9px;background:#ecf0f1;border-radius:4px;margin-bottom:3px;font-size:10px">CT Chest</li>
+        <li style="padding:6px 9px;background:#ecf0f1;border-radius:4px;margin-bottom:3px;font-size:10px">CT Abdomen</li>
+        <li style="padding:6px 9px;background:#ecf0f1;border-radius:4px;margin-bottom:3px;font-size:10px">CT Brain</li>
+      </ul>
+    </div>
+    <!-- Editor with // shortcut dropdown -->
+    <div style="background:#fff;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.08);padding:9px;display:flex;flex-direction:column;gap:6px;overflow:visible;position:relative">
+      <div style="display:flex;gap:5px;align-items:center">
+        <button style="background:#3498db;color:#fff;border:none;border-radius:4px;padding:5px 9px;font-size:10px;font-weight:700">📝 Format</button>
+        <button style="background:#27ae60;color:#fff;border:none;border-radius:4px;padding:5px 9px;font-size:10px;font-weight:700">📊 Copy &amp; Count</button>
+        <input placeholder="Accession No." style="padding:5px 8px;border:2px solid #3498db;border-radius:4px;font-size:10px;width:120px">
+      </div>
+      <div id="s7-editor-area" style="flex:1;background:#fff;border:2px solid #3498db;border-radius:6px;padding:12px 14px;font-family:'Courier New',monospace;font-size:11px;color:#2c3e50;line-height:1.7;position:relative;overflow:visible">
+        <span style="color:#9ca3af">Start typing your report or use the // shortcut…</span><br><br>
+        <div style="position:relative;display:inline-block" id="slash-trigger">
+          <span style="color:#1e3a5f;font-weight:700;font-size:13px">//ct head</span><span class="typing-cursor"></span>
+          <!-- Slash dropdown -->
+          <div id="slash-dropdown" class="slash-drop" style="position:absolute;top:24px;left:0;width:340px;z-index:200">
+            <div style="padding:7px 12px;background:#e3f2fd;border-bottom:1px solid #bde0fb;font-size:10px;font-weight:700;color:#1e3a5f">🔍 Templates matching "ct head" — 5 results</div>
+            <div class="slash-drop-item active">CT Head (Routine)<span class="mt">CT</span></div>
+            <div class="slash-drop-item">CT Head (Trauma)<span class="mt">CT</span></div>
+            <div class="slash-drop-item">CT Head with Contrast<span class="mt">CT</span></div>
+            <div class="slash-drop-item">CT Head (Post-op)<span class="mt">CT</span></div>
+            <div class="slash-drop-item">CT Head Perfusion<span class="mt">CT</span></div>
+            <div style="padding:6px 12px;background:#f8fafc;border-top:1px solid #e3f2fd;font-size:9px;color:#9ca3af">Press ↑↓ to navigate · Enter or click to load</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div style="background:linear-gradient(135deg,#667eea,#764ba2);border-radius:10px;padding:11px;color:#fff">
+      <h3 style="font-size:11px;margin:0 0 6px">📊 My Dashboard</h3>
+      <div style="background:rgba(255,255,255,.15);padding:8px;border-radius:8px;margin-bottom:6px;display:flex;justify-content:space-between;font-size:11px"><span>📋 QA Tasks</span><span style="background:#e74c3c;padding:1px 7px;border-radius:8px;font-weight:700">3</span></div>
+      <div style="background:rgba(255,255,255,.15);padding:8px;border-radius:8px;display:flex;justify-content:space-between;font-size:11px"><span>📝 Reports Today</span><span style="background:#27ae60;padding:1px 7px;border-radius:8px;font-weight:700">12</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ S8: AI RECOMMENDATIONS ══ -->
+<div class="screen" id="s-ai" style="background:#f0f4f8">
+  <div class="hdr" style="padding:9px 18px"><h1 style="font-size:13px">🏥 RadTemplates</h1></div>
+  <div class="emp-tb" style="padding:5px 12px">
+    <button class="mic-btn" style="width:30px;height:30px;font-size:13px">🎤</button>
+    <button class="etab" style="font-size:10px;padding:5px 10px">📊 My Stats</button>
+    <select class="esel" style="font-size:10px;padding:5px 10px"><option>US ▼</option></select>
+  </div>
+  <div style="flex:1;display:grid;grid-template-columns:1fr 310px;gap:10px;padding:8px 12px;overflow:hidden">
+    <!-- Editor side -->
+    <div style="background:#fff;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.08);padding:9px;display:flex;flex-direction:column;gap:6px;overflow:hidden">
+      <div style="display:flex;gap:5px;align-items:center;flex-wrap:wrap">
+        <button style="background:#3498db;color:#fff;border:none;border-radius:4px;padding:5px 9px;font-size:10px;font-weight:700">📝 Format</button>
+        <button id="s8-aibtn" style="background:#8b5cf6;color:#fff;border:none;border-radius:4px;padding:5px 9px;font-size:10px;font-weight:700;box-shadow:0 0 0 3px rgba(139,92,246,.35)">🤖 AI ✨</button>
+        <button style="background:#27ae60;color:#fff;border:none;border-radius:4px;padding:5px 9px;font-size:10px;font-weight:700">📊 Copy &amp; Count</button>
+        <input placeholder="Accession No." style="padding:5px 8px;border:2px solid #3498db;border-radius:4px;font-size:10px;width:130px">
+      </div>
+      <div style="flex:1;background:#fff;border:2px solid #e0e0e0;border-radius:6px;padding:12px 14px;font-family:'Courier New',monospace;font-size:11px;color:#2c3e50;line-height:1.7;overflow-y:auto">
+        <strong>ULTRASOUND ABDOMEN</strong><br><br>
+        <strong>TECHNIQUE:</strong> Grey-scale and colour Doppler examination.<br><br>
+        <strong>LIVER:</strong> Normal in size and echogenicity. No focal lesion.<br><br>
+        <strong>GALLBLADDER:</strong> Normal. No calculi.<br><br>
+        <strong>KIDNEYS:</strong> Normal bilaterally.<br><br>
+        <strong>IMPRESSION:</strong> Normal ultrasound examination.
+      </div>
+    </div>
+    <!-- AI panel -->
+    <div id="s8-aipanel" style="background:#fff;border-radius:10px;box-shadow:0 4px 18px rgba(139,92,246,.25);border:2px solid #8b5cf6;overflow-y:auto;display:flex;flex-direction:column">
+      <div style="background:linear-gradient(135deg,#7c3aed,#8b5cf6);padding:12px 14px;flex-shrink:0">
+        <h3 style="color:#fff;font-size:12px;font-weight:700;margin:0">🤖 AI Recommendations</h3>
+        <div style="font-size:10px;color:rgba(255,255,255,.7);margin-top:2px">Analysing your report…</div>
+      </div>
+      <div style="padding:12px;display:flex;flex-direction:column;gap:8px;flex:1">
+        <div style="background:#fef3c7;border-left:3px solid #f59e0b;border-radius:6px;padding:9px 11px">
+          <div style="font-size:10px;font-weight:700;color:#92400e;margin-bottom:4px">⚠️ Missing Element</div>
+          <div style="font-size:11px;color:#374151;line-height:1.5">Portal vein patency should be mentioned for a complete abdominal US. Consider adding: "Portal vein is patent."</div>
+          <button style="margin-top:6px;background:#f59e0b;color:#fff;border:none;border-radius:4px;padding:3px 9px;font-size:10px;font-weight:700;cursor:pointer">+ Insert</button>
+        </div>
+        <div style="background:#fef3c7;border-left:3px solid #f59e0b;border-radius:6px;padding:9px 11px">
+          <div style="font-size:10px;font-weight:700;color:#92400e;margin-bottom:4px">⚠️ Missing Element</div>
+          <div style="font-size:11px;color:#374151;line-height:1.5">No mention of free fluid in the abdomen. Standard protocol requires documenting its presence or absence.</div>
+          <button style="margin-top:6px;background:#f59e0b;color:#fff;border:none;border-radius:4px;padding:3px 9px;font-size:10px;font-weight:700;cursor:pointer">+ Insert</button>
+        </div>
+        <div style="background:#f0fdf4;border-left:3px solid #10b981;border-radius:6px;padding:9px 11px">
+          <div style="font-size:10px;font-weight:700;color:#065f46;margin-bottom:4px">✅ Impression Quality</div>
+          <div style="font-size:11px;color:#374151;line-height:1.5">Your impression is clear and concise. Impression is well structured.</div>
+        </div>
+        <div style="background:#eff6ff;border-left:3px solid #3b82f6;border-radius:6px;padding:9px 11px">
+          <div style="font-size:10px;font-weight:700;color:#1e40af;margin-bottom:4px">💡 Suggestion</div>
+          <div style="font-size:11px;color:#374151;line-height:1.5">Spleen size and echogenicity should be documented per departmental protocol.</div>
+          <button style="margin-top:6px;background:#3b82f6;color:#fff;border:none;border-radius:4px;padding:3px 9px;font-size:10px;font-weight:700;cursor:pointer">+ Insert</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ S9: MY STATS ══ -->
+<div class="screen" id="s-msp" style="background:#f0f4f8">
+  <div class="hdr" style="padding:9px 18px"><h1 style="font-size:13px">🏥 RadTemplates</h1></div>
+  <div class="emp-tb" style="padding:5px 12px">
+    <button class="etab active" style="font-size:10px;padding:5px 12px">📊 My Stats</button>
+    <button class="etab" style="font-size:10px;padding:5px 12px">QA Board</button>
+    <button class="etab" style="font-size:10px;padding:5px 12px">Peer Review</button>
+    <select class="esel" style="font-size:10px;padding:5px 10px"><option>Templates ▼</option></select>
+  </div>
+  <div id="s4-hero" style="background:linear-gradient(140deg,#0d2137,#1a3a6c 50%,#2558a8);padding:14px 22px 0;flex-shrink:0">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
+      <div>
+        <div style="font-size:9px;font-weight:800;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:2px;margin-bottom:3px">Radiology — Professional Portfolio</div>
+        <div style="font-size:18px;font-weight:800;color:#fff">Dr. Sharma's Portfolio</div>
+        <div style="font-size:10px;color:rgba(255,255,255,.5);margin-top:1px">Last 30 Days — Updated just now</div>
+      </div>
+      <div style="display:flex;gap:6px">
+        <select style="padding:5px 9px;border-radius:7px;border:1px solid rgba(255,255,255,.22);background:rgba(255,255,255,.1);color:#fff;font-size:10px"><option>Last 30 Days</option></select>
+        <button style="padding:5px 10px;border-radius:7px;border:1px solid rgba(255,255,255,.22);background:rgba(255,255,255,.1);color:#fff;font-size:10px;cursor:pointer">↺ Refresh</button>
+      </div>
+    </div>
+    <div id="s4-vitals" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:0">
+      <div style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.14);border-radius:11px;padding:10px 12px"><span style="font-size:14px;opacity:.75">🎯</span><div style="font-size:8px;font-weight:800;color:rgba(255,255,255,.55);text-transform:uppercase;margin:4px 0 2px">QA Accuracy</div><div style="font-size:22px;font-weight:900;color:#fff;line-height:1">96%</div><div style="font-size:9px;color:rgba(255,255,255,.42)">Grade 0–1</div></div>
+      <div style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.14);border-radius:11px;padding:10px 12px"><span style="font-size:14px;opacity:.75">🤝</span><div style="font-size:8px;font-weight:800;color:rgba(255,255,255,.55);text-transform:uppercase;margin:4px 0 2px">Peer Concordance</div><div style="font-size:22px;font-weight:900;color:#fff;line-height:1">91%</div><div style="font-size:9px;color:rgba(255,255,255,.42)">Agreement rate</div></div>
+      <div style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.14);border-radius:11px;padding:10px 12px"><span style="font-size:14px;opacity:.75">✅</span><div style="font-size:8px;font-weight:800;color:rgba(255,255,255,.55);text-transform:uppercase;margin:4px 0 2px">QA Response Rate</div><div style="font-size:22px;font-weight:900;color:#fff;line-height:1">100%</div><div style="font-size:9px;color:rgba(255,255,255,.42)">Acknowledged</div></div>
+      <div style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.14);border-radius:11px;padding:10px 12px"><span style="font-size:14px;opacity:.75">📋</span><div style="font-size:8px;font-weight:800;color:rgba(255,255,255,.55);text-transform:uppercase;margin:4px 0 2px">Reviews Done</div><div style="font-size:22px;font-weight:900;color:#fff;line-height:1">18</div><div style="font-size:9px;color:rgba(255,255,255,.42)">As reviewer</div></div>
+    </div>
+    <div id="s4-tabs" style="display:flex;gap:0;margin-top:6px">
+      <button style="padding:9px 16px;font-size:11px;font-weight:700;color:#fff;border:none;background:transparent;border-bottom:3px solid #60a5fa">📊 Peer Review</button>
+      <button style="padding:9px 16px;font-size:11px;font-weight:700;color:rgba(255,255,255,.5);border:none;background:transparent;border-bottom:3px solid transparent">🔍 QA Profile</button>
+      <button style="padding:9px 16px;font-size:11px;font-weight:700;color:rgba(255,255,255,.5);border:none;background:transparent;border-bottom:3px solid transparent">📁 My Reports</button>
+      <button style="padding:9px 16px;font-size:11px;font-weight:700;color:rgba(255,255,255,.5);border:none;background:transparent;border-bottom:3px solid transparent">🧠 Deep Analytics</button>
+    </div>
+  </div>
+  <div id="s4-body" style="flex:1;padding:12px 22px;overflow-y:auto;background:#f0f4f8">
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:7px;margin-bottom:10px">
+      <div style="background:#fff;border-radius:9px;padding:10px 11px;box-shadow:0 2px 6px rgba(0,0,0,.06);position:relative;overflow:hidden"><div style="position:absolute;top:0;left:0;width:4px;height:100%;background:#1e3a5f;border-radius:2px 0 0 2px"></div><div style="font-size:9px;color:#6b7280;font-weight:600;margin-bottom:3px;padding-left:6px">Cases Reviewed</div><div style="font-size:19px;font-weight:900;color:#1e3a5f;padding-left:6px">84</div></div>
+      <div style="background:#fff;border-radius:9px;padding:10px 11px;box-shadow:0 2px 6px rgba(0,0,0,.06);position:relative;overflow:hidden"><div style="position:absolute;top:0;left:0;width:4px;height:100%;background:#ef4444;border-radius:2px 0 0 2px"></div><div style="font-size:9px;color:#6b7280;font-weight:600;margin-bottom:3px;padding-left:6px">Discrepancy Rate</div><div style="font-size:19px;font-weight:900;color:#ef4444;padding-left:6px">4.8%</div></div>
+      <div style="background:#fff;border-radius:9px;padding:10px 11px;box-shadow:0 2px 6px rgba(0,0,0,.06);position:relative;overflow:hidden"><div style="position:absolute;top:0;left:0;width:4px;height:100%;background:#f59e0b;border-radius:2px 0 0 2px"></div><div style="font-size:9px;color:#6b7280;font-weight:600;margin-bottom:3px;padding-left:6px">Avg Score Received</div><div style="font-size:19px;font-weight:900;color:#f59e0b;padding-left:6px">0.3</div></div>
+      <div style="background:#fff;border-radius:9px;padding:10px 11px;box-shadow:0 2px 6px rgba(0,0,0,.06);position:relative;overflow:hidden"><div style="position:absolute;top:0;left:0;width:4px;height:100%;background:#8b5cf6;border-radius:2px 0 0 2px"></div><div style="font-size:9px;color:#6b7280;font-weight:600;margin-bottom:3px;padding-left:6px">Avg Response Time</div><div style="font-size:19px;font-weight:900;color:#8b5cf6;padding-left:6px">1.4d</div></div>
+      <div style="background:#fff;border-radius:9px;padding:10px 11px;box-shadow:0 2px 6px rgba(0,0,0,.06);position:relative;overflow:hidden"><div style="position:absolute;top:0;left:0;width:4px;height:100%;background:#10b981;border-radius:2px 0 0 2px"></div><div style="font-size:9px;color:#6b7280;font-weight:600;margin-bottom:3px;padding-left:6px">Agreed / Disputed</div><div style="font-size:15px;font-weight:900;padding-left:6px;margin-top:2px"><span style="color:#10b981">76</span><span style="color:#d1d5db;font-size:10px;margin:0 3px">vs</span><span style="color:#ef4444">8</span></div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:10px">
+      <div style="background:#fff;border-radius:9px;padding:11px;box-shadow:0 2px 6px rgba(0,0,0,.06)">
+        <div style="font-size:11px;font-weight:700;color:#374151;margin-bottom:7px;border-bottom:1px solid #f1f5f9;padding-bottom:5px">📈 Score Trend <span style="font-size:9px;color:#9ca3af;font-weight:400">Monthly avg</span></div>
+        <div style="height:50px;display:flex;align-items:flex-end;gap:5px;padding:0 4px">
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:1px"><div style="width:100%;background:#3b82f6;border-radius:2px 2px 0 0;height:32px"></div><div style="font-size:8px;color:#9ca3af">Oct</div></div>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:1px"><div style="width:100%;background:#3b82f6;border-radius:2px 2px 0 0;height:25px"></div><div style="font-size:8px;color:#9ca3af">Nov</div></div>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:1px"><div style="width:100%;background:#3b82f6;border-radius:2px 2px 0 0;height:36px"></div><div style="font-size:8px;color:#9ca3af">Dec</div></div>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:1px"><div style="width:100%;background:#10b981;border-radius:2px 2px 0 0;height:18px"></div><div style="font-size:8px;color:#9ca3af">Jan</div></div>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:1px"><div style="width:100%;background:#10b981;border-radius:2px 2px 0 0;height:13px"></div><div style="font-size:8px;color:#9ca3af">Feb</div></div>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:1px"><div style="width:100%;background:#10b981;border-radius:2px 2px 0 0;height:10px"></div><div style="font-size:8px;color:#9ca3af">Mar</div></div>
+        </div>
+      </div>
+      <div style="background:#fff;border-radius:9px;padding:11px;box-shadow:0 2px 6px rgba(0,0,0,.06)">
+        <div style="font-size:11px;font-weight:700;color:#374151;margin-bottom:7px;border-bottom:1px solid #f1f5f9;padding-bottom:5px">🔍 Error Patterns</div>
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <div style="display:flex;align-items:center;gap:4px"><div style="font-size:10px;color:#374151;width:74px">Missed Finding</div><div style="flex:1;background:#fee2e2;border-radius:3px;height:9px;overflow:hidden"><div style="background:#ef4444;height:100%;width:40%"></div></div><span style="font-size:9px;color:#6b7280">40%</span></div>
+          <div style="display:flex;align-items:center;gap:4px"><div style="font-size:10px;color:#374151;width:74px">Measurement</div><div style="flex:1;background:#fef3c7;border-radius:3px;height:9px;overflow:hidden"><div style="background:#f59e0b;height:100%;width:25%"></div></div><span style="font-size:9px;color:#6b7280">25%</span></div>
+          <div style="display:flex;align-items:center;gap:4px"><div style="font-size:10px;color:#374151;width:74px">Description</div><div style="flex:1;background:#dbeafe;border-radius:3px;height:9px;overflow:hidden"><div style="background:#3b82f6;height:100%;width:20%"></div></div><span style="font-size:9px;color:#6b7280">20%</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ S10: QA BOARD ══ -->
+<div class="screen" id="s-qa" style="background:#f0f4f8">
+  <div class="hdr" style="padding:9px 18px"><h1 style="font-size:13px">🏥 RadTemplates</h1></div>
+  <div class="emp-tb" style="padding:5px 12px">
+    <button class="etab" style="font-size:10px;padding:5px 12px">📊 My Stats</button>
+    <button class="etab active" style="font-size:10px;padding:5px 12px">QA Board <span class="ectr">3</span></button>
+    <button class="etab" style="font-size:10px;padding:5px 12px">Peer Review</button>
+  </div>
+  <div id="s5-body" style="flex:1;padding:14px 26px;overflow-y:auto">
+    <div style="background:#fff;border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,.08);padding:16px">
+      <h3 style="margin:0 0 14px;color:#2c3e50;border-bottom:2px solid #e74c3c;padding-bottom:7px;font-size:13px">🔍 Quality Assurance Board</h3>
+      <div style="display:flex;flex-direction:column;gap:9px">
+        <div id="s5-case1" style="background:#fff5f5;padding:12px 14px;border-radius:8px;border-left:4px solid #e74c3c">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:5px">
+            <div><strong style="font-size:12px;color:#2c3e50">ACC-2041 — CT Chest</strong> <span style="background:#e74c3c;color:#fff;border-radius:10px;padding:1px 6px;font-size:9px;margin-left:5px">Score 3/4</span></div>
+            <span style="background:#fef3c7;color:#92400e;border-radius:10px;padding:1px 7px;font-size:9px;font-weight:700">⚠️ Pending — Urgent</span>
+          </div>
+          <div style="font-size:10px;color:#7f8c8d">Assigned by: Dr. Admin &nbsp;|&nbsp; Due: 30 Mar 2026</div>
+          <div style="margin-top:7px;display:flex;gap:6px">
+            <button style="background:#27ae60;color:#fff;border:none;border-radius:4px;padding:3px 9px;font-size:10px;font-weight:700;cursor:pointer">✅ Agree</button>
+            <button style="background:#e74c3c;color:#fff;border:none;border-radius:4px;padding:3px 9px;font-size:10px;font-weight:700;cursor:pointer">❌ Dispute</button>
+            <button style="background:#3498db;color:#fff;border:none;border-radius:4px;padding:3px 9px;font-size:10px;font-weight:700;cursor:pointer">💬 Respond</button>
+          </div>
+        </div>
+        <div style="background:#fff8e1;padding:12px 14px;border-radius:8px;border-left:4px solid #ffc107">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:5px">
+            <div><strong style="font-size:12px;color:#2c3e50">ACC-2038 — US Abdomen</strong> <span style="background:#f39c12;color:#fff;border-radius:10px;padding:1px 6px;font-size:9px;margin-left:5px">Score 2/4</span></div>
+            <span style="background:#fef3c7;color:#92400e;border-radius:10px;padding:1px 7px;font-size:9px;font-weight:700">Pending</span>
+          </div>
+          <div style="font-size:10px;color:#7f8c8d">Assigned by: Dr. Admin &nbsp;|&nbsp; Due: 01 Apr 2026</div>
+          <div style="margin-top:7px;display:flex;gap:6px">
+            <button style="background:#27ae60;color:#fff;border:none;border-radius:4px;padding:3px 9px;font-size:10px;font-weight:700;cursor:pointer">✅ Agree</button>
+            <button style="background:#e74c3c;color:#fff;border:none;border-radius:4px;padding:3px 9px;font-size:10px;font-weight:700;cursor:pointer">❌ Dispute</button>
+            <button style="background:#3498db;color:#fff;border:none;border-radius:4px;padding:3px 9px;font-size:10px;font-weight:700;cursor:pointer">💬 Respond</button>
+          </div>
+        </div>
+        <div style="background:#f0f4f8;padding:12px 14px;border-radius:8px;border-left:4px solid #27ae60">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:5px">
+            <div><strong style="font-size:12px;color:#2c3e50">ACC-2035 — MRI Brain</strong> <span style="background:#27ae60;color:#fff;border-radius:10px;padding:1px 6px;font-size:9px;margin-left:5px">Score 4/4</span></div>
+            <span style="background:#d1fae5;color:#065f46;border-radius:10px;padding:1px 7px;font-size:9px;font-weight:700">✅ Completed</span>
+          </div>
+          <div style="font-size:10px;color:#7f8c8d">Completed: 27 Mar 2026</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ S11: QA RESPONSE MODAL ══ -->
+<div class="screen" id="s-qamodal" style="background:#f0f4f8">
+  <div class="hdr" style="padding:9px 18px"><h1 style="font-size:13px">🏥 RadTemplates</h1></div>
+  <div style="background:#34495e;padding:5px 12px;display:flex;align-items:center;gap:7px;flex-shrink:0">
+    <button style="padding:4px 10px;background:#3498db;color:#fff;border:none;border-radius:5px;font-size:10px">My Stats</button>
+    <button style="padding:4px 10px;background:#27ae60;color:#fff;border:none;border-radius:5px;font-size:10px;font-weight:700">QA Board <span style="background:#e74c3c;color:#fff;border-radius:8px;padding:0 4px;font-size:9px">3</span></button>
+    <button style="padding:4px 10px;background:#3498db;color:#fff;border:none;border-radius:5px;font-size:10px">Peer Review</button>
+  </div>
+  <div style="flex:1;position:relative;overflow:hidden">
+    <div style="position:absolute;inset:0;background:#f0f4f8;filter:blur(2px);opacity:.4;pointer-events:none"></div>
+    <div class="modal-overlay">
+      <div id="qa-modal-box" style="background:#fff;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.35);width:630px;max-width:96%;max-height:90%;overflow-y:auto">
+        <div style="padding:14px 18px">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:6px;margin-bottom:12px">
+            <div style="font-size:14px;font-weight:700;color:#2c3e50">Acc: ACC-2041 · CT Chest · Dr. Sharma</div>
+            <span style="background:#f97316;color:#fff;padding:3px 11px;border-radius:18px;font-size:11px;font-weight:700">🟡 IN PROGRESS</span>
+          </div>
+          <!-- SECTION A -->
+          <!-- SECTION A -->
+<div id="qa-sect-a" style="background:#f8f9fa;border-radius:8px;padding:11px 13px;margin-bottom:11px">
+  <div style="font-size:12px;font-weight:700;color:black;margin-bottom:8px;border-bottom:1px solid #e5e7eb;padding-bottom:5px">📋 Section A — Case Details &amp; Finding</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;font-size:12px;margin-bottom:8px;color:black">
+    <div><strong>Employee:</strong> Dr. Sharma (EMP01)<br><strong>Hospital:</strong> City Hospital<br><strong>Modality:</strong> CT</div>
+    <div><strong>Accession:</strong> ACC-2041<br><strong>Due Date:</strong> 30 Mar 2026<br><strong>Received:</strong> 25 Mar 2026</div>
+  </div>
+  <div style="padding:8px 11px;background:#fff3cd;border-left:3px solid #f59e0b;border-radius:0 5px 5px 0;font-size:12px;color:black">
+    <strong>📋 Reviewer Finding:</strong><br>Report did not comment on the small right-sided pleural effusion seen on the basal cuts. This finding has potential clinical significance and should have been mentioned in both Findings and Impression.
+  </div>
+</div>
+<!-- Case History -->
+<div id="qa-timeline-box" style="max-height:90px;overflow-y:auto;padding:3px 1px;margin-bottom:12px">
+  <div style="padding:9px 12px;background:#f0fdf4;border-left:3px solid #16a34a;border-radius:6px;color:black">
+    <div style="font-size:10px;color:black;margin-bottom:3px">🆕 <strong>QA Created by Management</strong> · 25 Mar 2026, 09:14</div>
+    <div style="font-size:12px;color:black">Report did not comment on the small right-sided pleural effusion.</div>
+  </div>
+</div>
+          <!-- SECTION B -->
+          <div style="border-top:2px solid #e5e7eb;padding-top:12px">
+            <div style="font-size:13px;font-weight:700;margin-bottom:8px;color:#2c3e50" id="qa-sect-b">✍️ Section B — Your Response</div>
+            <div style="margin-bottom:9px">
+              <label style="font-weight:600;font-size:12px;display:block;margin-bottom:5px">Your Stance: <span style="color:#e74c3c">*</span></label>
+              <div id="qa-agree-row" style="display:flex;flex-direction:column;gap:5px">
+                <label style="display:flex;align-items:center;gap:7px;padding:7px 10px;border:1px solid #10b981;border-radius:5px;font-size:12px;background:#f0fdf4;cursor:pointer"><input type="radio" name="qaStance" checked> ✅ <strong>I Agree</strong> — Yes, I made an error</label>
+                <label style="display:flex;align-items:center;gap:7px;padding:7px 10px;border:1px solid #e5e7eb;border-radius:5px;font-size:12px;cursor:pointer"><input type="radio" name="qaStance"> ❌ <strong>I Disagree</strong> — The report is correct because…</label>
+                <label style="display:flex;align-items:center;gap:7px;padding:7px 10px;border:1px solid #e5e7eb;border-radius:5px;font-size:12px;cursor:pointer"><input type="radio" name="qaStance"> ⚪ <strong>Non-Clinical</strong> — Transcription / IT / Admin error</label>
+              </div>
+            </div>
+            <div style="margin-bottom:9px">
+              <label style="font-weight:600;font-size:12px;display:block;margin-bottom:4px">Clinical Explanation: <span style="color:#e74c3c">*</span></label>
+              <textarea rows="3" style="width:100%;padding:8px 10px;border:1.5px solid #d1d5db;border-radius:5px;font-size:11px;font-family:inherit;resize:none" id="qa-response-ta">I acknowledge the omission of the right-sided pleural effusion. On review, a small trace effusion is visible on the basal cuts. I will ensure complete review of all chest compartments in future reports.</textarea>
+            </div>
+            <div id="qa-action-row" style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:10px">
+              <label style="display:flex;align-items:center;gap:6px;padding:7px 11px;border:1px solid #10b981;border-radius:5px;font-size:11px;background:#f0fdf4;cursor:pointer"><input type="radio" name="qaAct" checked> 🟢 <strong>I have Addended</strong></label>
+              <label style="display:flex;align-items:center;gap:6px;padding:7px 11px;border:1px solid #e5e7eb;border-radius:5px;font-size:11px;cursor:pointer"><input type="radio" name="qaAct"> 🔵 <strong>Already Corrected</strong></label>
+              <label style="display:flex;align-items:center;gap:6px;padding:7px 11px;border:1px solid #e5e7eb;border-radius:5px;font-size:11px;cursor:pointer"><input type="radio" name="qaAct"> ⚪ <strong>No Change Needed</strong></label>
+            </div>
+            <div style="text-align:right">
+              <button id="qa-submit-btn" style="background:#28a745;color:#fff;border:none;padding:9px 20px;border-radius:5px;font-size:12px;font-weight:700;cursor:pointer;margin-right:7px">✅ Submit QA Response</button>
+              <button style="background:#6c757d;color:#fff;border:none;padding:9px 16px;border-radius:5px;font-size:12px;cursor:pointer">Cancel</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ S12: PEER REVIEW SCORING ══ -->
+<div class="screen" id="s-score" style="background:#f0f4f8">
+  <div class="hdr" style="padding:9px 18px"><h1 style="font-size:13px">🏥 RadTemplates — Peer Review Scoring</h1></div>
+  <div class="emp-tb" style="padding:5px 12px">
+    <button class="etab active" style="font-size:10px;padding:5px 12px">Peer Review <span class="ectr">2</span></button>
+  </div>
+  <div style="flex:1;padding:14px 22px;overflow-y:auto">
+    <div style="background:#fff;border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,.08);padding:16px;max-width:700px">
+      <h3 style="font-size:13px;color:#1e3a5f;margin:0 0 5px">⭐ Peer Review Scoring — 0 to 4</h3>
+      <p style="font-size:11px;color:#64748b;margin-bottom:12px;line-height:1.6">Every reviewed report receives a score from 0 to 4. Lower is better. Here is what each score means:</p>
+      <div class="score-legend">
+        <div class="score-row" style="border-color:#10b981"><div class="s-num" style="color:#10b981">0</div><div><div class="s-lbl" style="color:#10b981">No Error</div><div class="s-desc">Report is complete and accurate. No discrepancy found. Case closes automatically.</div></div></div>
+        <div class="score-row" style="border-color:#3b82f6"><div class="s-num" style="color:#3b82f6">1</div><div><div class="s-lbl" style="color:#3b82f6">Minor</div><div class="s-desc">Small omission or wording issue with no clinical impact. Can close with simple agreement.</div></div></div>
+        <div class="score-row" style="border-color:#f59e0b"><div class="s-num" style="color:#f59e0b">2</div><div><div class="s-lbl" style="color:#f59e0b">Moderate</div><div class="s-desc">Missed finding with potential clinical significance. Written response required.</div></div></div>
+        <div class="score-row" style="border-color:#f97316"><div class="s-num" style="color:#f97316">3</div><div><div class="s-lbl" style="color:#f97316">Significant</div><div class="s-desc">Clear error that could affect patient management. Full written response required.</div></div></div>
+        <div class="score-row" style="border-color:#ef4444"><div class="s-num" style="color:#ef4444">4</div><div><div class="s-lbl" style="color:#ef4444">Critical</div><div class="s-desc">Major diagnostic error with serious patient safety implications. Mandatory escalation.</div></div></div>
+      </div>
+      <div style="background:#eff6ff;border:1px solid #93c5fd;border-radius:7px;padding:11px;margin-top:12px;font-size:11px;color:#1e3a5f;line-height:1.6">
+        💡 <strong>Key rule:</strong> Score 0–1 can close with a simple agreement. Score 2 or above requires your written explanation. If you believe the reviewer's assessment is wrong, escalate to Adjudication for an HR binding decision.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ S13: PEER REVIEW BOARD ══ -->
+<div class="screen" id="s-pr" style="background:#f0f4f8">
+  <div class="hdr" style="padding:9px 18px"><h1 style="font-size:13px">🏥 RadTemplates</h1></div>
+  <div class="emp-tb" style="padding:5px 12px">
+    <button class="etab" style="font-size:10px;padding:5px 12px">📊 My Stats</button>
+    <button class="etab" style="font-size:10px;padding:5px 12px">QA Board</button>
+    <button class="etab active" style="font-size:10px;padding:5px 12px">Peer Review <span class="ectr" style="background:#f39c12">2</span></button>
+  </div>
+  <div id="s6-body" style="flex:1;padding:14px 26px;overflow-y:auto">
+    <div style="background:#fff;border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,.08);padding:16px">
+      <h3 style="margin:0 0 5px;color:#2c3e50;font-size:13px">👥 Peer Review Board</h3>
+      <p style="font-size:10px;color:#7f8c8d;margin-bottom:12px">Two types: cases where you are the <strong>Reviewer</strong> (assigned to score an external report), and cases where you are the <strong>First Reader</strong> (responding to a reviewer's score on your own report).</p>
+      <div style="display:flex;gap:7px;margin-bottom:12px">
+        <button style="background:#3498db;color:#fff;border:none;border-radius:5px;padding:5px 11px;font-size:10px;font-weight:700">📥 Assigned to Me</button>
+        <button style="background:#ecf0f1;color:#2c3e50;border:none;border-radius:5px;padding:5px 11px;font-size:10px">📤 My Reviews</button>
+        <button style="background:#ecf0f1;color:#2c3e50;border:none;border-radius:5px;padding:5px 11px;font-size:10px">📊 Analytics</button>
+        <button style="background:#ecf0f1;color:#2c3e50;border:none;border-radius:5px;padding:5px 11px;font-size:10px">⚖️ Adjudication</button>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:9px">
+        <!-- Reviewer case -->
+        <div id="s6-ext-review" style="border:1px solid #e2e8f0;border-radius:8px;padding:12px 14px;background:#fff;border-left:4px solid #9b59b6">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:5px">
+            <div><strong style="font-size:12px">EXT-5021</strong> <span style="background:#9b59b6;color:#fff;border-radius:10px;padding:1px 6px;font-size:9px;margin-left:4px;font-weight:700">YOU REVIEW</span> <span style="font-size:10px;color:#7f8c8d;margin-left:4px">CT — City Hospital</span></div>
+            <span style="background:#fef3c7;color:#92400e;border-radius:10px;padding:1px 7px;font-size:9px;font-weight:700">Pending Your Review</span>
+          </div>
+          <div style="font-size:10px;color:#7f8c8d;margin-bottom:7px">First Reader: Dr. Lee &nbsp;|&nbsp; Due: 02 Apr 2026</div>
+          <button style="background:#9b59b6;color:#fff;border:none;border-radius:4px;padding:4px 11px;font-size:10px;font-weight:700;cursor:pointer">📝 Start Review</button>
+        </div>
+        <!-- First reader response case -->
+        <div id="s6-int-fr" style="border:1px solid #e2e8f0;border-radius:8px;padding:12px 14px;background:#fff;border-left:4px solid #f39c12">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:5px">
+            <div><strong style="font-size:12px">ACC-2024-045</strong> <span style="background:#f39c12;color:#fff;border-radius:10px;padding:1px 6px;font-size:9px;margin-left:4px;font-weight:700">YOUR RESPONSE</span> <span style="font-size:10px;color:#7f8c8d;margin-left:4px">MRI Brain</span></div>
+            <span style="background:#fef3c7;color:#92400e;border-radius:10px;padding:1px 7px;font-size:9px;font-weight:700">Awaiting Your Response</span>
+          </div>
+          <div style="font-size:10px;color:#7f8c8d;margin-bottom:7px">Reviewed by: Dr. Kapoor &nbsp;|&nbsp; Score: 2/4 &nbsp;|&nbsp; Due: 01 Apr 2026</div>
+          <button style="background:#f39c12;color:#fff;border:none;border-radius:4px;padding:4px 11px;font-size:10px;font-weight:700;cursor:pointer">💬 Respond to Review</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ S14: REVIEWER SCORING — Reviewing EXT-5021 ══ -->
+<div class="screen" id="s-reviewer" style="background:#f0f4f8">
+  <div class="hdr" style="padding:9px 18px"><h1 style="font-size:13px">🏥 RadTemplates</h1></div>
+  <div style="background:#34495e;padding:5px 12px;display:flex;align-items:center;gap:7px;flex-shrink:0">
+    <button style="padding:4px 10px;background:#3498db;color:#fff;border:none;border-radius:5px;font-size:10px">My Stats</button>
+    <button style="padding:4px 10px;background:#3498db;color:#fff;border:none;border-radius:5px;font-size:10px">QA Board</button>
+    <button style="padding:4px 10px;background:#27ae60;color:#fff;border:none;border-radius:5px;font-size:10px;font-weight:700">Peer Review <span style="background:#f39c12;color:#fff;border-radius:8px;padding:0 4px;font-size:9px">2</span></button>
+  </div>
+  <div style="flex:1;position:relative;overflow:hidden">
+    <div style="position:absolute;inset:0;background:#f0f4f8;filter:blur(2px);opacity:.35;pointer-events:none"></div>
+    <div class="modal-overlay">
+      <div id="reviewer-modal" style="background:#fff;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.35);width:620px;max-width:96%;max-height:90%;overflow-y:auto">
+        <div style="padding:14px 18px">
+          <h3 style="color:#9b59b6;font-size:14px;font-weight:700;margin:0 0 3px">👁️ External Peer Review — You Are the Reviewer</h3>
+          <div style="font-size:10px;color:#9ca3af;margin-bottom:12px">EXT-5021 · CT Chest · City Hospital · First Reader: Dr. Lee</div>
+          <!-- Report excerpt -->
+          <div id="reviewer-report" style="background:#f8f9fa;border:1px solid #e5e7eb;border-radius:7px;padding:11px;margin-bottom:12px;max-height:100px;overflow-y:auto">
+            <div style="font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;margin-bottom:5px">Original Report</div>
+            <div style="font-family:'Courier New',monospace;font-size:11px;color:#2c3e50;line-height:1.6">
+              <strong>CT CHEST</strong><br>
+              No consolidation or collapse. No pleural effusion documented. Heart size is normal. No mediastinal lymphadenopathy.
+              <br><strong>IMPRESSION:</strong> Normal CT chest.
+            </div>
+          </div>
+          <!-- Score selection -->
+          <div id="reviewer-score" style="margin-bottom:12px">
+            <label style="font-weight:600;font-size:12px;display:block;margin-bottom:8px">Assign Score: <span style="color:#e74c3c">*</span></label>
+            <div style="display:flex;gap:6px;flex-wrap:wrap">
+              <button style="padding:8px 14px;border:2px solid #10b981;border-radius:7px;background:#f0fdf4;color:#10b981;font-size:12px;font-weight:700;cursor:pointer">0 — No Error</button>
+              <button style="padding:8px 14px;border:2px solid #3b82f6;border-radius:7px;background:#fff;color:#3b82f6;font-size:12px;font-weight:700;cursor:pointer">1 — Minor</button>
+              <button style="padding:8px 14px;border:2px solid #f59e0b;border-radius:7px;background:#fffbeb;color:#d97706;font-size:12px;font-weight:800;cursor:pointer;box-shadow:0 0 0 3px rgba(245,158,11,.3)">2 — Moderate ✓</button>
+              <button style="padding:8px 14px;border:2px solid #f97316;border-radius:7px;background:#fff;color:#f97316;font-size:12px;font-weight:700;cursor:pointer">3 — Significant</button>
+              <button style="padding:8px 14px;border:2px solid #ef4444;border-radius:7px;background:#fff;color:#ef4444;font-size:12px;font-weight:700;cursor:pointer">4 — Critical</button>
+            </div>
+          </div>
+          <!-- Comments -->
+          <div id="reviewer-comments" style="margin-bottom:12px">
+            <label style="font-weight:600;font-size:12px;display:block;margin-bottom:5px">Your Reviewer Comments: <span style="color:#e74c3c">*</span></label>
+            <textarea rows="3" style="width:100%;padding:9px 11px;border:1.5px solid #d1d5db;border-radius:5px;font-size:11px;font-family:inherit;resize:none">A small right-sided pleural effusion is visible on the basal cuts which was not commented upon in the original report. While subtle, this finding warrants mention and clinical correlation.</textarea>
+          </div>
+          <div style="display:flex;gap:8px;justify-content:flex-end;padding-top:10px;border-top:1px solid #e5e7eb">
+            <button style="background:#6c757d;color:#fff;border:none;padding:8px 16px;border-radius:5px;font-size:12px;cursor:pointer">Cancel</button>
+            <button id="reviewer-submit" style="background:#9b59b6;color:#fff;border:none;padding:8px 20px;border-radius:5px;font-size:12px;font-weight:700;cursor:pointer">📤 Submit Review</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ S15: FIRST READER RESPONSE — Internal ══ -->
+<div class="screen" id="s-intpr" style="background:#f0f4f8">
+  <div class="hdr" style="padding:9px 18px"><h1 style="font-size:13px;color:black">🏥 RadTemplates</h1></div>
+  <div style="background:#34495e;padding:5px 12px;display:flex;align-items:center;gap:7px;flex-shrink:0">
+    <button style="padding:4px 10px;background:#3498db;color:black;border:none;border-radius:5px;font-size:10px">My Stats</button>
+    <button style="padding:4px 10px;background:#3498db;color:black;border:none;border-radius:5px;font-size:10px">QA Board</button>
+    <button style="padding:4px 10px;background:#27ae60;color:black;border:none;border-radius:5px;font-size:10px;font-weight:700">Peer Review <span style="background:#f39c12;color:black;border-radius:8px;padding:0 4px;font-size:9px">2</span></button>
+  </div>
+  <div style="flex:1;position:relative;overflow:hidden">
+    <div style="position:absolute;inset:0;background:#f0f4f8;filter:blur(2px);opacity:.3;pointer-events:none"></div>
+    <div class="modal-overlay">
+      <div id="intpr-modal-box" style="background:#fff;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.35);width:620px;max-width:96%;max-height:90%;overflow-y:auto">
+        <div style="padding:14px 18px">
+          <h3 style="color:black;font-size:14px;font-weight:700;margin:0 0 3px">💬 Respond to Peer Review — First Reader</h3>
+          <div style="background:#f39c12;color:black;padding:7px 12px;border-radius:6px;margin-bottom:11px;font-weight:700;font-size:12px">⏳ Pending Your Response</div>
+          <div style="background:#f8f9fa;padding:11px;border-radius:7px;margin-bottom:11px;font-size:12px;color:black">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px">
+              <div><strong>Accession:</strong> ACC-2024-045</div>
+              <div><strong>Study Date:</strong> 20 Mar 2026</div>
+              <div><strong>Modality:</strong> MRI Brain</div>
+              <div><strong>Type:</strong> Internal</div>
+            </div>
+          </div>
+          <div id="intpr-comments" style="background:#e8f5e9;border-left:4px solid #27ae60;padding:11px;border-radius:7px;margin-bottom:11px;color:black">
+            <h4 style="margin:0 0 7px;color:black;font-size:12px">👨‍⚕️ Reviewer's Assessment — Dr. Kapoor</h4>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;font-size:12px;margin-bottom:7px;color:black">
+              <div><strong>Score:</strong> <span style="font-size:17px;font-weight:800;color:black">2/4 — Moderate</span></div>
+              <div><strong>Error Category:</strong> Omission</div>
+            </div>
+            <div style="background:#fff;padding:8px;border-radius:5px;font-size:11px;line-height:1.6;color:black">
+              <strong>Comments:</strong><br>The initial report did not mention the subtle T2 hyperintensity in the periventricular white matter, which may represent early demyelinating change. This finding should have been flagged for clinical correlation.
+            </div>
+          </div>
+          <div id="intpr-response" style="margin-bottom:11px;color:black">
+            <p style="font-weight:600;margin-bottom:7px;font-size:12px">Your Response:</p>
+            <label style="display:block;margin:7px 0;cursor:pointer;padding:9px;border:2px solid #27ae60;border-radius:6px;font-size:12px;background:#f0fdf4;color:black"><input type="radio" name="intResp" value="agree"> ✅ <strong>Agree</strong> with the reviewer's assessment</label>
+            <label style="display:block;margin:7px 0;cursor:pointer;padding:9px;border:2px solid #e74c3c;border-radius:6px;font-size:12px;color:black"><input type="radio" name="intResp" value="disagree"> ❌ <strong>Disagree</strong> with the reviewer's assessment</label>
+          </div>
+          <div style="margin-bottom:11px;color:black">
+            <label style="display:block;font-weight:600;margin-bottom:4px;font-size:12px">Your Comment:</label>
+            <textarea id="intpr-textarea" rows="2" style="width:100%;padding:8px;border:1px solid #d1d5db;border-radius:5px;font-size:11px;font-family:inherit;color:black" placeholder="Explain your stance clearly and professionally…"></textarea>
+          </div>
+          <div id="intpr-agree-row" style="background:#fff3cd;border-radius:7px;padding:10px;margin-bottom:10px;color:black">
+            <label style="display:block;font-weight:600;margin-bottom:4px;font-size:12px">Reason for Disagreement: *</label>
+            <textarea rows="2" style="width:100%;padding:8px;border:2px solid #e74c3c;border-radius:5px;font-size:11px;font-family:inherit;color:black" placeholder="Provide detailed clinical reasoning…"></textarea>
+            <button id="intpr-adjud-btn" style="background:#e74c3c;color:black;border:none;border-radius:5px;width:100%;margin-top:7px;font-size:12px;padding:9px;cursor:pointer;font-weight:700">🚨 Raise for Adjudication — Send to HR for Final Decision</button>
+          </div>
+          <div style="display:flex;gap:8px;justify-content:flex-end;padding-top:10px;border-top:1px solid #e5e7eb">
+            <button style="background:#6c757d;color:black;border:none;padding:8px 16px;border-radius:5px;font-size:12px;cursor:pointer">Cancel</button>
+            <button id="intpr-submit" style="background:#28a745;color:black;border:none;padding:8px 20px;border-radius:5px;font-size:12px;font-weight:700;cursor:pointer">✅ Submit Response</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ S16: EVENTS / SCHEDULE ══ -->
+<div class="screen" id="s-events" style="background:#f0f4f8">
+  <div class="hdr" style="padding:9px 18px"><h1 style="font-size:13px">🏥 RadTemplates</h1></div>
+  <div class="emp-tb" style="padding:5px 12px">
+    <button class="etab" style="font-size:10px;padding:5px 12px">📊 My Stats</button>
+    <button class="eevt" style="font-size:10px;padding:5px 12px;box-shadow:0 0 0 2px #2ecc71">📅 Events ▼</button>
+  </div>
+  <div style="flex:1;padding:12px 22px;display:flex;gap:12px;overflow-y:auto">
+    <div id="s9-evtsdd" style="background:#fff;border:2px solid #27ae60;border-radius:9px;box-shadow:0 4px 14px rgba(0,0,0,.13);width:185px;overflow:hidden;flex-shrink:0;align-self:flex-start">
+      <div style="padding:10px 14px;border-bottom:1px solid #ecf0f1;font-size:11px;color:#2c3e50;cursor:pointer;font-weight:600">📅 My Schedule</div>
+      <div style="padding:10px 14px;font-size:11px;color:#2c3e50;cursor:pointer;font-weight:600;display:flex;justify-content:space-between;align-items:center">🔔 Meetings <span style="background:#e74c3c;color:#fff;padding:1px 6px;border-radius:8px;font-size:10px;font-weight:700">1</span></div>
+    </div>
+    <div style="flex:1;background:#fff;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,.07);padding:14px;overflow-y:auto">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;padding-bottom:7px;border-bottom:2px solid #3498db">
+        <h3 style="font-size:13px;color:#2c3e50;margin:0">📅 Schedule — March 2026</h3>
+        <div style="display:flex;align-items:center;gap:7px">
+          <button style="background:#3498db;color:#fff;border:none;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:10px">◀ Prev</button>
+          <span style="font-size:12px;font-weight:700;color:#2c3e50">March 2026</span>
+          <button style="background:#3498db;color:#fff;border:none;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:10px">Next ▶</button>
+        </div>
+      </div>
+      <table style="width:100%;border-collapse:collapse;font-size:11px">
+        <thead style="background:#34495e;color:#fff"><tr><th style="padding:8px;text-align:center">Date</th><th style="padding:8px">Dr. Sharma</th><th style="padding:8px">Dr. Patel</th><th style="padding:8px">Dr. Rao</th><th style="padding:8px">Dr. Khan</th></tr></thead>
+        <tbody>
+          <tr style="border-bottom:1px solid #ecf0f1"><td style="padding:9px;background:#f8fafc;font-weight:700;text-align:center">Mon 25</td><td style="padding:9px;text-align:center"><span style="background:#27ae60;color:#fff;border-radius:10px;padding:2px 8px;font-size:9px;font-weight:700">Morning</span></td><td style="padding:9px;text-align:center"><span style="background:#e74c3c;color:#fff;border-radius:10px;padding:2px 8px;font-size:9px;font-weight:700">Off</span></td><td style="padding:9px;text-align:center"><span style="background:#27ae60;color:#fff;border-radius:10px;padding:2px 8px;font-size:9px;font-weight:700">Afternoon</span></td><td style="padding:9px;text-align:center"><span style="background:#3498db;color:#fff;border-radius:10px;padding:2px 8px;font-size:9px;font-weight:700">Night</span></td></tr>
+          <tr><td style="padding:9px;background:#f8fafc;font-weight:700;text-align:center">Tue 26</td><td style="padding:9px;text-align:center"><span style="background:#e74c3c;color:#fff;border-radius:10px;padding:2px 8px;font-size:9px;font-weight:700">Off</span></td><td style="padding:9px;text-align:center"><span style="background:#27ae60;color:#fff;border-radius:10px;padding:2px 8px;font-size:9px;font-weight:700">Morning</span></td><td style="padding:9px;text-align:center"><span style="background:#27ae60;color:#fff;border-radius:10px;padding:2px 8px;font-size:9px;font-weight:700">Morning</span></td><td style="padding:9px;text-align:center"><span style="background:#27ae60;color:#fff;border-radius:10px;padding:2px 8px;font-size:9px;font-weight:700">Afternoon</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ══ S17: MACRO MANAGER ══ -->
+<div class="screen" id="s-macro" style="background:#f0f4f8">
+  <div class="hdr" style="padding:9px 18px"><h1 style="font-size:13px">🏥 RadTemplates</h1></div>
+  <div style="flex:1;padding:12px 22px;overflow-y:auto">
+    <div id="s10-macro" style="background:#fff;border-radius:12px;box-shadow:0 4px 18px rgba(0,0,0,.12);overflow:hidden;max-height:430px;display:flex;flex-direction:column">
+      <div style="background:linear-gradient(135deg,#1e3a5f,#2558a8);color:#fff;padding:12px 18px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
+        <h3 style="font-size:13px;font-weight:700;margin:0">⚙️ My Macros — Text Shortcuts</h3>
+        <button style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:50%;width:24px;height:24px;cursor:pointer;font-size:13px">×</button>
+      </div>
+      <div id="s10-addform" style="padding:12px 18px;border-bottom:1px solid #e5eaf0;background:#f8fafc;flex-shrink:0">
+        <div style="font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;margin-bottom:7px">Add New Macro</div>
+        <div style="display:grid;grid-template-columns:110px 130px 1fr auto;gap:7px;align-items:start">
+          <div>
+            <div style="font-size:9px;font-weight:700;color:#94a3b8;text-transform:uppercase;margin-bottom:3px">Modality</div>
+            <select style="width:100%;padding:6px 8px;border:1.5px solid #e2e8f0;border-radius:6px;font-size:10px;background:#fff"><option>All Modalities</option><option>US</option><option>CT</option><option>MRI</option></select>
+          </div>
+          <div>
+            <div style="font-size:9px;font-weight:700;color:#94a3b8;text-transform:uppercase;margin-bottom:3px">Macro Name (trigger)</div>
+            <input type="text" placeholder="e.g. nkidney" style="width:100%;padding:6px 8px;border:1.5px solid #e2e8f0;border-radius:6px;font-size:10px;font-family:monospace">
+          </div>
+          <div>
+            <div style="font-size:9px;font-weight:700;color:#94a3b8;text-transform:uppercase;margin-bottom:3px">Expansion Text</div>
+            <textarea placeholder="The kidneys are normal…" style="width:100%;padding:6px 8px;border:1.5px solid #e2e8f0;border-radius:6px;font-size:10px;font-family:inherit;resize:none;height:46px"></textarea>
+          </div>
+          <div style="padding-top:15px">
+            <button style="background:#1e3a5f;color:#fff;border:none;border-radius:6px;padding:7px 12px;font-size:11px;font-weight:700;cursor:pointer">+ Add</button>
+          </div>
+        </div>
+      </div>
+      <div id="s10-macrolist" style="padding:12px 18px;overflow-y:auto;flex:1">
+        <div style="font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;margin-bottom:8px">Your Macros</div>
+        <div style="display:grid;grid-template-columns:90px 90px 1fr auto;gap:6px;align-items:center;padding:7px 0;border-bottom:1px solid #f1f5f9">
+          <span style="background:#e3f2fd;color:#1e3a5f;border-radius:4px;padding:2px 7px;font-size:11px;font-weight:700;font-family:monospace">nkidney</span>
+          <span style="font-size:10px;color:#6b7280">US</span>
+          <span style="font-size:10px;color:#374151">Normal kidneys bilaterally, no hydronephrosis…</span>
+          <button style="background:#e74c3c;color:#fff;border:none;border-radius:4px;padding:2px 7px;font-size:9px;cursor:pointer">Delete</button>
+        </div>
+        <div style="display:grid;grid-template-columns:90px 90px 1fr auto;gap:6px;align-items:center;padding:7px 0;border-bottom:1px solid #f1f5f9">
+          <span style="background:#e3f2fd;color:#1e3a5f;border-radius:4px;padding:2px 7px;font-size:11px;font-weight:700;font-family:monospace">nliver</span>
+          <span style="font-size:10px;color:#6b7280">US</span>
+          <span style="font-size:10px;color:#374151">Liver normal in size and echogenicity…</span>
+          <button style="background:#e74c3c;color:#fff;border:none;border-radius:4px;padding:2px 7px;font-size:9px;cursor:pointer">Delete</button>
+        </div>
+        <div style="display:grid;grid-template-columns:90px 90px 1fr auto;gap:6px;align-items:center;padding:7px 0">
+          <span style="background:#e3f2fd;color:#1e3a5f;border-radius:4px;padding:2px 7px;font-size:11px;font-weight:700;font-family:monospace">ctchest</span>
+          <span style="font-size:10px;color:#6b7280">CT</span>
+          <span style="font-size:10px;color:#374151">No acute cardiopulmonary process identified…</span>
+          <button style="background:#e74c3c;color:#fff;border:none;border-radius:4px;padding:2px 7px;font-size:9px;cursor:pointer">Delete</button>
+        </div>
+        <div style="padding:9px 0;border-top:1px solid #e5eaf0;margin-top:7px;font-size:10px;color:#9ca3af;line-height:1.6">
+          💡 <strong>How to use:</strong> Type the macro name in the editor and press <kbd style="background:#e5e7eb;padding:1px 5px;border-radius:3px;font-size:9px">Space</kbd> — it expands instantly.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ S18: HR TOOLBAR ══ -->
+<div class="screen" id="s-hr" style="background:#f0f4f8">
+  <div class="hdr" style="padding:9px 18px"><h1 style="font-size:13px">🏥 RadTemplates — Admin View</h1>
+    <div class="hdr-btns"><button class="hbtn" style="background:#e74c3c;font-size:10px">Logout</button></div>
+  </div>
+  <div class="hr-tb" id="s7-hrtb">
+    <button class="hr-tab active">QA Management</button>
+    <button class="hr-tab" style="background:#1a1a2e;color:#e94560;border:2px solid #e94560">📊 QA Analytics</button>
+    <button class="hr-tab">⏱️ Time Logs</button>
+    <button class="hr-tab">Peer Review Mgmt</button>
+    <button class="hr-tab" style="background:#9b59b6">⚙️ Body Part Rules</button>
+    <button class="hr-tab" style="background:linear-gradient(135deg,#1e3a5f,#2558a8)">👤 Emp Profile</button>
+    <button class="hr-tab" style="background:#e67e22">🔐 Password Mgmt</button>
+    <button class="hr-tab" style="background:#27ae60">📅 Events ▼</button>
+  </div>
+  <div style="flex:1;padding:14px 26px;overflow-y:auto">
+    <div style="background:#fff;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,.08);padding:16px">
+      <h3 style="color:#2c3e50;margin-bottom:12px;font-size:13px;border-bottom:2px solid #e74c3c;padding-bottom:7px">🔍 QA Management Dashboard</h3>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:12px">
+        <div style="background:linear-gradient(135deg,#e74c3c,#c0392b);color:#fff;border-radius:8px;padding:12px;text-align:center"><div style="font-size:22px;font-weight:800">12</div><div style="font-size:10px;opacity:.9">Pending QA</div></div>
+        <div style="background:linear-gradient(135deg,#f39c12,#d35400);color:#fff;border-radius:8px;padding:12px;text-align:center"><div style="font-size:22px;font-weight:800">3</div><div style="font-size:10px;opacity:.9">Overdue</div></div>
+        <div style="background:linear-gradient(135deg,#27ae60,#1e8449);color:#fff;border-radius:8px;padding:12px;text-align:center"><div style="font-size:22px;font-weight:800">48</div><div style="font-size:10px;opacity:.9">Completed</div></div>
+        <div style="background:linear-gradient(135deg,#3498db,#2980b9);color:#fff;border-radius:8px;padding:12px;text-align:center"><div style="font-size:22px;font-weight:800">94%</div><div style="font-size:10px;opacity:.9">Response Rate</div></div>
+      </div>
+      <table style="width:100%;border-collapse:collapse;font-size:11px">
+        <thead style="background:#34495e;color:#fff"><tr><th style="padding:8px 10px;text-align:left">Employee</th><th style="padding:8px 10px">Accession</th><th style="padding:8px 10px">Score</th><th style="padding:8px 10px">Due</th><th style="padding:8px 10px">Status</th></tr></thead>
+        <tbody>
+          <tr style="border-bottom:1px solid #f1f5f9"><td style="padding:7px 10px">Dr. Sharma</td><td style="padding:7px 10px;text-align:center">ACC-2041</td><td style="padding:7px 10px;text-align:center"><span style="background:#fee2e2;color:#991b1b;border-radius:8px;padding:1px 7px;font-size:10px;font-weight:700">3/4</span></td><td style="padding:7px 10px;text-align:center">30 Mar</td><td style="padding:7px 10px;text-align:center"><span style="background:#fef3c7;color:#92400e;border-radius:8px;padding:1px 7px;font-size:10px;font-weight:700">Pending</span></td></tr>
+          <tr><td style="padding:7px 10px">Dr. Patel</td><td style="padding:7px 10px;text-align:center">ACC-2039</td><td style="padding:7px 10px;text-align:center"><span style="background:#d1fae5;color:#065f46;border-radius:8px;padding:1px 7px;font-size:10px;font-weight:700">4/4</span></td><td style="padding:7px 10px;text-align:center">28 Mar</td><td style="padding:7px 10px;text-align:center"><span style="background:#d1fae5;color:#065f46;border-radius:8px;padding:1px 7px;font-size:10px;font-weight:700">Done</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ══ S19: TOOLS DROPDOWN ══ -->
+<div class="screen" id="s-tools" style="background:#f0f4f8">
+  <div class="hdr" style="padding:9px 18px" id="s8-hdr"><h1 style="font-size:13px">🏥 RadTemplates</h1>
+    <div class="hdr-btns">
+      <button class="hbtn" style="background:#00a86b;font-size:10px">✨ What's New</button>
+      <button class="hbtn" style="background:#9b59b6;font-size:10px;box-shadow:0 0 0 2px #c084fc" id="s8-toolsbtn">🔧 Tools ▼</button>
+      <button class="hbtn" style="background:#e74c3c;font-size:10px">Logout</button>
+    </div>
+  </div>
+  <div class="emp-tb" style="padding:5px 12px">
+    <button class="etab active" style="font-size:10px;padding:5px 12px">📊 My Stats</button>
+  </div>
+  <div style="flex:1;padding:12px 22px;display:flex;gap:14px;align-items:flex-start">
+    <div id="s8-toolsdd" style="background:#fff;border:2px solid #9b59b6;border-radius:10px;box-shadow:0 4px 15px rgba(0,0,0,.15);width:200px;overflow:hidden;flex-shrink:0">
+      <div style="padding:10px 14px;border-bottom:1px solid #ecf0f1;display:flex;justify-content:space-between;align-items:center"><span style="font-size:12px;font-weight:500;color:#2c3e50">🌙 Dark Theme</span><div style="width:40px;height:18px;background:#ccc;border-radius:10px;position:relative"><div style="position:absolute;width:13px;height:13px;background:#fff;border-radius:50%;top:2.5px;left:3px;box-shadow:0 1px 3px rgba(0,0,0,.3)"></div></div></div>
+      <div id="s8-search" style="padding:10px 14px;border-bottom:1px solid #ecf0f1;font-size:12px;color:#2c3e50;cursor:pointer;font-weight:500">🔍 Advanced Search</div>
+      <div style="padding:10px 14px;border-bottom:1px solid #ecf0f1;font-size:12px;color:#2c3e50;cursor:pointer;font-weight:500" id="s8-ticket">🎫 Report Issue</div>
+      <div style="padding:10px 14px;border-bottom:1px solid #ecf0f1;font-size:12px;color:#2c3e50;cursor:pointer;font-weight:500;display:flex;justify-content:space-between" id="s8-mytickets">📋 My Tickets <span style="background:#e74c3c;color:#fff;padding:1px 5px;border-radius:8px;font-size:10px;font-weight:700">2</span></div>
+      <div style="padding:10px 14px;font-size:12px;color:#2c3e50;cursor:pointer;font-weight:500">📁 My Files</div>
+    </div>
+    <div style="background:#fff;border-radius:10px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,.07);flex:1">
+      <h3 style="font-size:13px;color:#1e3a5f;margin-bottom:10px;font-weight:700">🔧 Tools Menu</h3>
+      <p style="font-size:11px;color:#64748b;line-height:1.7;margin-bottom:5px">🌙 <strong>Dark Theme</strong> — Switch between light and dark mode for comfortable night reporting.</p>
+      <p style="font-size:11px;color:#64748b;line-height:1.7;margin-bottom:5px">🔍 <strong>Advanced Search</strong> — Search across all reports and QA cases in the system.</p>
+      <p style="font-size:11px;color:#64748b;line-height:1.7;margin-bottom:5px">🎫 <strong>Report Issue</strong> — Submit a support ticket to the admin team for IT or system issues.</p>
+      <p style="font-size:11px;color:#64748b;line-height:1.7;margin-bottom:5px">📋 <strong>My Tickets</strong> — Track status of all your submitted support requests.</p>
+      <p style="font-size:11px;color:#64748b;line-height:1.7">📁 <strong>My Files</strong> — Access your saved report files and attachments.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ══ S20: END ══ -->
+<div class="screen" id="s-end" style="background:linear-gradient(135deg,#1e3a5f,#2d6a9f);justify-content:center;align-items:center">
+  <div style="text-align:center;padding:36px;max-width:500px">
+    <div style="font-size:52px;margin-bottom:14px">🎉</div>
+    <h2 style="color:#fff;font-size:22px;font-weight:800;margin-bottom:10px">Tour Complete!</h2>
+    <p style="color:rgba(255,255,255,.8);font-size:13px;line-height:1.7;margin-bottom:18px">You've seen all the key features of RadTemplates. Start by selecting a modality, load a template using the search bar or the // shortcut, fill in your report, and click Copy and Count. Check your QA Board and Peer Review Board daily.</p>
+    <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+      <div style="background:rgba(255,255,255,.12);border-radius:8px;padding:9px 14px;font-size:11px;color:rgba(255,255,255,.9)">📝 Load a template</div>
+      <div style="background:rgba(255,255,255,.12);border-radius:8px;padding:9px 14px;font-size:11px;color:rgba(255,255,255,.9)">🔍 Check QA Board</div>
+      <div style="background:rgba(255,255,255,.12);border-radius:8px;padding:9px 14px;font-size:11px;color:rgba(255,255,255,.9)">📅 View Schedule</div>
+      <div style="background:rgba(255,255,255,.12);border-radius:8px;padding:9px 14px;font-size:11px;color:rgba(255,255,255,.9)">⚙️ Set up Macros</div>
+    </div>
+    <p style="color:rgba(255,255,255,.4);font-size:11px;margin-top:16px">Press Restart to watch again</p>
+  </div>
+</div>
+
+<!-- ══ OVERLAY ══ -->
+<div id="overlay">
+  <div id="spotlight"></div>
+  <div id="glowRing"></div>
+  <div id="arrWrap">
+    <div id="arrLabel">Here</div>
+    <svg id="arrSvg" width="26" height="26" viewBox="0 0 26 26"><polygon points="13,3 23,20 13,16 3,20" fill="#facc15"/></svg>
+  </div>
+</div>
+
+</div></div>
+
+<!-- ══ CAPTION BAR ══ -->
+<div id="capBar">
+  <span id="capIcon">👋</span>
+  <span id="capTxt">Welcome to the <strong>RadTemplates</strong> Interactive Tour. Press <strong>Play</strong> to begin.</span>
+  <span id="capStep"></span>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const synth=window.speechSynthesis;
+let playing=false,paused=false,cur=-1,tid=null,activeUtt=null,maleVoice=null;
+
+/* ══ STEPS ══ */
+const S=[
+  // ── LOGIN ──
+  {sc:'s-login',ic:'🏥',hl:'s1-title',ar:null,
+   c:'Welcome to Rad Genie — a complete radiology reporting and quality assurance platform built for radiologists. Every feature you will see in this tour is live in the application.'},
+  {sc:'s-login',ic:'🔑',hl:'s1-empInput',ar:{l:'Employee Code',d:'down'},
+   c:'To log in, enter your unique Employee Code here. Each employee has their own code assigned by HR. A separate Admin Access link at the bottom allows admin team to log in using a username and password.'},
+  {sc:'s-login',ic:'🚀',hl:'s1-accessBtn',ar:{l:'Access System',d:'up'},
+   c:'Clicking Access System authenticates your code and opens the main dashboard.'},
+
+  // ── HEADER ──
+  {sc:'s-header',ic:'👋',hl:'s2-hdr',ar:{l:'Welcome Header',d:'down'},
+   c:'After login the top header shows your welcome message, the application version number, and important action buttons on the top.'},
+  {sc:'s-header',ic:'✨',hl:'s2-whatsnew',ar:{l:"What's New",d:'down'},
+   c:"The green What's New button shows announcements and recent updates published by your admin team. A bell badge appears on this button when there are unread announcements — always check it after updates."},
+  {sc:'s-header',ic:'🔧',hl:'s2-tools',ar:{l:'Tools Menu',d:'down'},
+   c:'The purple Tools button opens a dropdown with utilities: Dark Theme toggle for night reporting, Advanced Search, Report Issue for IT tickets, My Tickets tracker, and My Files for saved attachments.'},
+  {sc:'s-header',ic:'🧭',hl:'s2-emptb',ar:{l:'Navigation Toolbar',d:'down'},
+   c:'The dark grey toolbar below the header is your main navigation bar. It contains the voice microphone, tab buttons for all main sections, the modality selector, the Events calendar, and the Gender toggle for templates.'},
+
+  // ── TAB COUNTERS ──
+  {sc:'s-ctrs',ic:'🔢',hl:'qa-tab-ctr',ar:{l:'QA Counter',d:'down'},
+   c:'Look carefully at the QA Board button — it has a red badge showing 3. This means you have 3 quality assurance cases currently pending your response. These require action before their due dates.'},
+  {sc:'s-ctrs',ic:'🟠',hl:'pr-tab-ctr',ar:{l:'PR Counter',d:'down'},
+   c:'The Peer Review button has an orange badge showing 2. These are 2 First Reader assignments — cases where a reviewer has already scored one of your reports and you must now respond with your clinical assessment.'},
+  {sc:'s-ctrs',ic:'📊',hl:'qa-ctr-card',ar:{l:'Red = QA',d:'right'},
+   c:'Red badge means QA cases assigned by admin HR. You must Agree, Dispute, or write a Response for each one before the due date. When the count hits zero the badge disappears automatically.'},
+  {sc:'s-ctrs',ic:'📋',hl:'pr-ctr-card',ar:{l:'Orange = Peer Review',d:'left'},
+   c:'Orange badge means pending First Reader assignments — your report was reviewed, scored, and you must now read the reviewer comments and submit your response. Missing this deadline affects your compliance score in My Stats.'},
+
+  // ── FLOATING DASHBOARD ──
+  {sc:'s-float',ic:'📊',hl:'s-float-panel',ar:{l:'Floating Panel',d:'left'},
+   c:'While working in the report editor, this floating panel on the right side shows a live summary of your activity. It is always visible so you never have to leave the editor to check your workload.'},
+  {sc:'s-float',ic:'🔴',hl:'float-qa',ar:{l:'QA Tasks',d:'down'},
+   c:'The red QA Tasks badge shows your pending QA cases. Click it at any time to jump directly to the QA Board. Keep this number at zero — all pending cases must be responded to before their due dates.'},
+  {sc:'s-float',ic:'🟠',hl:'float-pr',ar:{l:'Peer Reviews',d:'down'},
+   c:'The orange Peer Reviews badge shows your pending First Reader assignments. Click it to jump straight to the Peer Review Board and submit your response to the reviewer comments.'},
+  {sc:'s-float',ic:'🟢',hl:'float-rpt',ar:{l:'Reports Today',d:'down'},
+   c:'The green Reports Today counter shows exactly how many reports you have submitted using Copy and Count today. This is your quick daily sanity check that all your reports are being counted correctly.'},
+
+  // ── TEMPLATE EDITOR LAYOUT ──
+  {sc:'s-tpl',ic:'📐',hl:'s3-sidebar',ar:{l:'Left Sidebar',d:'right'},
+   c:'The report editor uses a three-column layout. The left sidebar shows your Notes Board, a search bar for templates, your recently used templates, and the full template list for the currently selected modality.'},
+  {sc:'s-tpl',ic:'🔊',hl:'s3-mic',ar:{l:'Voice Input',d:'down'},
+   c:'The red microphone button activates voice dictation. Click it and speak naturally — your words appear live in the report editor. This is especially useful for long detailed reports. Works best in a quiet environment.'},
+  {sc:'s-tpl',ic:'🏥',hl:'s3-modality',ar:{l:'Modality Selector',d:'down'},
+   c:'The modality dropdown lets you switch between US, CT, MRI, X-Ray, and Biotronics. The template list in the sidebar updates automatically to show templates for your selected modality. Select this before loading any template.'},
+
+  // ── SEARCH — SIDEBAR ──
+  {sc:'s-search',ic:'🔍',hl:'srch-wrap',ar:{l:'Search Bar',d:'down'},
+   c:'To find a specific template, click the search bar in the left sidebar or press Control K as a shortcut from anywhere. Type the modality and body part — here the user has typed CT Head.'},
+  {sc:'s-search',ic:'📋',hl:'srch-drop',ar:{l:'Search Results',d:'down'},
+   c:'A live dropdown appears instantly showing all matching templates. CT Head has 8 results across 2 pages — CT Head Routine, Trauma, Post-op, with Contrast, Perfusion, and more. Click any item to load it into the editor. Use the page arrows to browse further results.'},
+
+  // ── SLASH SHORTCUT ──
+  {sc:'s-slash',ic:'⚡',hl:'slash-trigger',ar:{l:'// Shortcut',d:'down'},
+   c:'There is a second, faster way to find templates directly inside the editor. Type two forward slashes followed by your search — here the user typed slash slash CT Head. A template dropdown appears right at the cursor position without leaving the editor.'},
+  {sc:'s-slash',ic:'📋',hl:'slash-dropdown',ar:{l:'Pick a Template',d:'down'},
+   c:'The inline dropdown shows all matching templates. Use the up and down arrow keys to navigate the list, or simply click the template you want. Pressing Enter or clicking loads the full template text into the editor instantly, replacing the slash command.'},
+
+  // ── EDITOR TOOLBAR ──
+  {sc:'s-tpl',ic:'🛠️',hl:'s3-tbar',ar:{l:'Editor Toolbar',d:'down'},
+   c:'The editor toolbar sits above the report text. Key buttons are: Format to clean up spacing, Copy to clipboard, and the Institution and Accession Number fields on the right. Always fill in the institution and accession number before copying your final report.'},
+  {sc:'s-tpl',ic:'📊',hl:'s3-cnc',ar:{l:'Copy & Count',d:'down'},
+   c:'Copy and Count is the most important button in the entire app. It copies the report to your clipboard AND records it in your daily report count for productivity tracking. Always use Copy and Count — not just Copy — every single time you finish a report.'},
+  {sc:'s-tpl',ic:'💾',hl:'s3-fmtbar',ar:{l:'Formatting Toolbar',d:'down'},
+   c:'The formatting toolbar below lets you change font size, apply bold, italic, and underline, align text, and insert bullet or numbered lists. The auto-save selector at the right automatically drafts your work every 30 seconds so you never lose progress.'},
+
+  // ── AI ──
+  {sc:'s-ai',ic:'🤖',hl:'s8-aibtn',ar:{l:'AI Button',d:'down'},
+   c:'The purple AI button in the editor toolbar runs an artificial intelligence analysis of your current report. Click it after writing your report to get instant feedback before you submit.'},
+  {sc:'s-ai',ic:'💡',hl:'s8-aipanel',ar:{l:'AI Panel',d:'left'},
+   c:'The AI panel appears on the right. It scans your report against standard radiology protocols and highlights three types of feedback: yellow warnings for missing expected elements, green ticks for what you did well, and blue suggestions for departmental best practices. You can click Insert to add any suggestion directly into your report with one click.'},
+
+  // ── MY STATS ──
+  {sc:'s-msp',ic:'📊',hl:'s4-hero',ar:{l:'My Stats Hero',d:'down'},
+   c:'My Stats is your personal professional portfolio. It tracks your radiology performance over time. Use the date range selector to view the last 7 days, last 30 days, or all-time data.'},
+  {sc:'s-msp',ic:'🎯',hl:'s4-vitals',ar:{l:'Vitals Strip',d:'down'},
+   c:'The four vitals cards show your key performance indicators: QA Accuracy from your quality assessments, Peer Concordance which is your agreement rate with reviewers, QA Response Rate showing how promptly you respond, and Reviews Done showing how many reports you have reviewed as a peer reviewer.'},
+  {sc:'s-msp',ic:'📈',hl:'s4-tabs',ar:{l:'Analytics Tabs',d:'down'},
+   c:'Four analytics tabs give you progressively deeper insight: Peer Review shows your score trend and error patterns, QA Profile tracks your quality history, My Reports lists all your submissions, and Deep Analytics provides long-term comparative insights.'},
+  {sc:'s-msp',ic:'📉',hl:'s4-body',ar:{l:'KPI Cards',d:'down'},
+   c:'The KPI cards show exact numbers: Cases Reviewed, Discrepancy Rate, Average Score Received — lower is better — Average Response Time in days, and your Agreed versus Disputed count. The charts below show your score trend improving month on month and which error types to focus on.'},
+
+  // ── QA BOARD ──
+  {sc:'s-qa',ic:'🔍',hl:'s5-body',ar:{l:'QA Board',d:'down'},
+   c:'The QA Board lists all quality assurance tasks assigned to you by HR. Each entry shows the accession number, the modality, the score from 0 to 4, the due date, and the current status. Cases are sorted by urgency.'},
+  {sc:'s-qa',ic:'⚠️',hl:'s5-case1',ar:{l:'Urgent Case',d:'down'},
+   c:'Cases highlighted in red with an Urgent label are due soonest and carry high scores. Yellow cases are standard pending. Completed cases in green are resolved. Click any pending case to open the QA response form immediately.'},
+
+  // ── QA MODAL ──
+  {sc:'s-qamodal',ic:'📋',hl:'qa-modal-box',ar:null,
+   c:'Clicking a QA case opens this detailed response modal. It has two sections — Section A at the top shows the reviewer finding, and Section B at the bottom is where you write your response.'},
+  {sc:'s-qamodal',ic:'🔎',hl:'qa-sect-a',ar:{l:'Section A — Finding',d:'down'},
+   c:'Read Section A very carefully. It shows which case is under review, the hospital, the due date, and most importantly the exact finding — here the reviewer identified that a right-sided pleural effusion on the basal cuts was not mentioned in the original CT Chest report.'},
+  {sc:'s-qamodal',ic:'✍️',hl:'qa-sect-b',ar:{l:'Section B — Response',d:'up'},
+   c:'Section B is your response area. Type your clinical acknowledgment or explanation clearly and specifically. If you agree there was an omission, explain what you now see on review. If you disagree, explain exactly why the report was in fact correct.'},
+  {sc:'s-qamodal',ic:'✅',hl:'qa-agree-row',ar:{l:'Select Stance',d:'down'},
+   c:'Select your stance: Agree if you accept the finding, Disagree to formally dispute it with clinical reasoning, or Non-Clinical if this was a transcription or IT error not a diagnostic one. Your selection changes the fields that appear below.'},
+  {sc:'s-qamodal',ic:'📤',hl:'qa-submit-btn',ar:{l:'Submit',d:'up'},
+   c:'When you are ready click Submit QA Response. This sends your response to HR and changes the case status from Pending to Completed. Always submit before the due date — late responses are flagged in your compliance record.'},
+
+  // ── PEER REVIEW SCORING ──
+  {sc:'s-score',ic:'⭐',hl:null,ar:null,
+   c:'Before working in the Peer Review board, understand the scoring system. Every reviewed report receives a score from 0 to 4. Zero means no error. Four means a critical diagnostic error with direct patient safety implications. Lower is always better.'},
+
+  // ── PR BOARD ──
+  {sc:'s-pr',ic:'👥',hl:'s6-body',ar:{l:'Peer Review Board',d:'down'},
+   c:'The Peer Review Board shows two distinct types of cases. Purple cases labelled You Review are cases assigned to you to score someone else\'s external report — you are the reviewer. Orange cases labelled Your Response are your own reports that a reviewer has already scored — you must now respond as the First Reader.'},
+  {sc:'s-pr',ic:'🟣',hl:'s6-ext-review',ar:{l:'You Are Reviewer',d:'down'},
+   c:'EXT-5021 is assigned to you as the reviewer. An external radiologist wrote this report and you are asked to assess it objectively against the imaging. Click Start Review to open the scoring form.'},
+  {sc:'s-pr',ic:'🟠',hl:'s6-int-fr',ar:{l:'Your Response Needed',d:'down'},
+   c:'ACC-2024-045 is a case where your own report has been reviewed and scored 2 out of 4 by Dr. Kapoor. You must read their comments and submit your First Reader response. Click Respond to Review to open the response modal.'},
+
+  // ── REVIEWER SCORING MODAL ──
+  {sc:'s-reviewer',ic:'👁️',hl:'reviewer-modal',ar:null,
+   c:'When you open a reviewer case, this form appears. Your role here is to assess the original report objectively and assign a fair score from 0 to 4. Read the report excerpt shown at the top carefully.'},
+  {sc:'s-reviewer',ic:'📊',hl:'reviewer-score',ar:{l:'Assign Score',d:'down'},
+   c:'Select the appropriate score using these colour-coded buttons. Here score 2 Moderate is selected because a pleural effusion was present but not mentioned. Be objective — your score and written comments are used for the radiologist\'s compliance record.'},
+  {sc:'s-reviewer',ic:'💬',hl:'reviewer-comments',ar:{l:'Your Comments',d:'up'},
+   c:'Write detailed, specific, clinical comments explaining exactly what you found and why it matters. Vague comments like just missed finding are not acceptable — explain the finding, its location, and its clinical significance. Then click Submit Review.'},
+
+  // ── FIRST READER RESPONSE ──
+  {sc:'s-intpr',ic:'💬',hl:'intpr-modal-box',ar:null,
+   c:'This is the First Reader Response modal — you are responding to a reviewer\'s assessment of your own report. Dr. Kapoor has reviewed your MRI Brain report and assigned a score of 2 out of 4. You must now read their finding carefully and respond professionally.'},
+  {sc:'s-intpr',ic:'🔎',hl:'intpr-comments',ar:{l:'Reviewer Finding',d:'down'},
+   c:'The green box shows Dr. Kapoor\'s exact finding: a subtle T2 hyperintensity in the periventricular white matter that may represent early demyelinating change was not mentioned in your original report. Read this thoroughly before writing your response.'},
+  {sc:'s-intpr',ic:'✍️',hl:'intpr-response',ar:{l:'Agree or Disagree',d:'down'},
+   c:'Now select your response. If you agree the finding is real and should have been reported, click Agree. If you clinically disagree with the reviewer\'s assessment, click Disagree and you must then provide detailed reasoning below.'},
+  {sc:'s-intpr',ic:'🚨',hl:'intpr-adjud-btn',ar:{l:'Adjudication',d:'up'},
+   c:'If you strongly disagree and want a formal HR ruling, click Raise for Adjudication. This escalates the case to an adjudicator who makes the binding final decision. Use this only when you have solid clinical grounds for disagreement. Then click Submit Response before the due date.'},
+
+  // ── EVENTS ──
+  {sc:'s-events',ic:'📅',hl:'s9-evtsdd',ar:{l:'Events Menu',d:'right'},
+   c:'The Events button in the toolbar opens a dropdown with two options: My Schedule shows your department shift roster for the month, and Meetings shows upcoming department or QA meetings. The red badge here shows one unread meeting notification.'},
+
+  // ── MACROS ──
+  {sc:'s-macro',ic:'⚙️',hl:'s10-addform',ar:{l:'Add Macro',d:'down'},
+   c:'The Macro Manager lets you create personal text shortcuts. Choose a modality, type a short trigger word like n-kidney, then write the full expansion text that will replace it. Macros are modality-specific — the same trigger can expand differently for US versus CT.'},
+  {sc:'s-macro',ic:'📋',hl:'s10-macrolist',ar:{l:'Saved Macros',d:'down'},
+   c:'Your saved macros are listed here. To use one in the editor, type the trigger word exactly — for example n-kidney — and press Space. The trigger is instantly replaced with the full expansion text. This saves significant typing time every session and reduces errors from repeated typing.'},
+
+  // ── TOOLS ──
+  {sc:'s-tools',ic:'🔧',hl:'s8-toolsdd',ar:{l:'Tools Dropdown',d:'right'},
+   c:'The Tools dropdown gives access to Dark Theme for comfortable low-light reporting, Advanced Search to find any case across the entire system, Report Issue to log IT support tickets, My Tickets to track your requests, and My Files for document attachments.'},
+
+  // ── HR ──
+  {sc:'s-hr',ic:'👔',hl:'s7-hrtb',ar:{l:'HR Admin Toolbar',d:'down'},
+   c:'HR administrators see a completely different toolbar with management tabs: QA Management and Analytics for oversight, Time Logs for attendance, Peer Review Management, Body Part Rules for protocol configuration, Employee Profile, Password Management, and the Events calendar for the whole department.'},
+
+  // ── END ──
+  {sc:'s-end',ic:'🎉',hl:null,ar:null,
+   c:'That completes the RadTemplates guided tour. You are now ready to report. Select your modality, load a template using the sidebar search or the slash shortcut, write your report, enter the accession number, and click Copy and Count. Check your QA Board and Peer Review Board every day for pending tasks. Good luck!'}
+];
+
+/* ══ VOICE ══ */
+function loadVoices(){
+  const voices=synth.getVoices();
+  if(!voices.length) return;
+  const male=['david','mark','guy','alex','fred','daniel','james','ryan','oliver','george'];
+  let v=voices.find(v=>male.some(n=>v.name.toLowerCase().includes(n))&&/en/i.test(v.lang));
+  if(!v) v=voices.find(v=>/en.*us/i.test(v.lang));
+  if(!v) v=voices.find(v=>/en/i.test(v.lang));
+  maleVoice=v||null;
+  $('voiceStatus').textContent=maleVoice?'🎙 '+maleVoice.name.split(' ').slice(0,2).join(' '):'Voice ready';
+}
+synth.onvoiceschanged=loadVoices; loadVoices();
+
+/* ══ SCREEN ══ */
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  const el=document.getElementById(id);
+  if(el) el.classList.add('active');
+}
+
+/* ══ ANNOTATE ══ */
+function clearAnno(){
+  $('spotlight').style.opacity='0';
+  $('glowRing').style.opacity='0';
+  $('arrWrap').style.opacity='0';
+  $('arrWrap').classList.remove('bounce');
+}
+function annotate(step){
+  clearAnno();
+  if(!step.hl) return;
+  const el=document.getElementById(step.hl);
+  if(!el) return;
+  const dev=$('device');
+  const dr=dev.getBoundingClientRect();
+  const er=el.getBoundingClientRect();
+  const pad=5;
+  const sl=er.left-dr.left-pad, st=er.top-dr.top-pad;
+  const sw=er.width+pad*2, sh=er.height+pad*2;
+  $('spotlight').style.cssText+=`;left:${sl}px;top:${st}px;width:${sw}px;height:${sh}px;opacity:1`;
+  $('glowRing').style.cssText+=`;left:${sl}px;top:${st}px;width:${sw}px;height:${sh}px;opacity:1`;
+  if(step.ar){
+    const aw=$('arrWrap'),sv=$('arrSvg');
+    $('arrLabel').textContent=step.ar.l||'Here';
+    const d=step.ar.d; let ax,ay;
+    if(d==='down'){ax=sl+sw/2-13;ay=st-52;sv.style.transform='rotate(180deg)';}
+    else if(d==='up'){ax=sl+sw/2-13;ay=st+sh+3;sv.style.transform='rotate(0deg)';}
+    else if(d==='left'){ax=sl+sw+3;ay=st+sh/2-22;sv.style.transform='rotate(90deg)';}
+    else{ax=sl-64;ay=st+sh/2-22;sv.style.transform='rotate(-90deg)';}
+    aw.style.left=ax+'px'; aw.style.top=ay+'px';
+    aw.style.opacity='1'; aw.classList.add('bounce');
+  }
+}
+
+/* ══ CAPTION + PROGRESS ══ */
+function setCaption(s,i){
+  $('capIcon').textContent=s.ic;
+  $('capTxt').innerHTML=s.c;
+  $('capStep').textContent='Step '+(i+1)+' / '+S.length;
+}
+function updateProg(i){
+  $('progFill').style.width=((i+1)/S.length*100).toFixed(1)+'%';
+  $('stepCtr').textContent=(i+1)+' / '+S.length;
+}
+
+/* ══ RUN STEP ══ */
+function runStep(i){
+  if(i>=S.length){endTour();return;}
+  if(paused) return;
+  cur=i;
+  const step=S[i];
+  showScreen(step.sc);
+  clearAnno();
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    if(paused) return;
+    annotate(step);
+    setCaption(step,i);
+    updateProg(i);
+    if(activeUtt){activeUtt.onend=null;activeUtt.onerror=null;activeUtt=null;}
+    synth.cancel();
+    const u=new SpeechSynthesisUtterance(step.c.replace(/<[^>]+>/g,''));
+    u.rate=parseFloat($('spdSlider').value);
+    u.pitch=0.92; u.volume=1;
+    if(maleVoice) u.voice=maleVoice;
+    activeUtt=u;
+    u.onend=()=>{activeUtt=null;if(playing&&!paused)tid=setTimeout(()=>runStep(i+1),650);};
+    u.onerror=()=>{activeUtt=null;if(playing&&!paused)tid=setTimeout(()=>runStep(i+1),650);};
+    synth.speak(u);
+  }));
+}
+
+function endTour(){
+  playing=false;paused=false;clearAnno();
+  $('playBtn').textContent='▶ Play Again';$('playBtn').disabled=false;
+  $('pauseBtn').disabled=true;$('pauseBtn').textContent='⏸ Pause';
+}
+function ctrlPlay(){
+  if(tid){clearTimeout(tid);tid=null;}
+  if(activeUtt){activeUtt.onend=null;activeUtt.onerror=null;activeUtt=null;}
+  synth.cancel();
+  paused=false;playing=true;
+  $('playBtn').textContent='Playing…';$('playBtn').disabled=true;
+  $('pauseBtn').disabled=false;
+  runStep(cur<0||cur>=S.length?0:cur);
+}
+function ctrlPause(){
+  if(paused){
+    paused=false;playing=true;
+    $('pauseBtn').textContent='⏸ Pause';
+    $('playBtn').disabled=true;$('playBtn').textContent='Playing…';
+    if(activeUtt){activeUtt.onend=null;activeUtt.onerror=null;activeUtt=null;}
+    synth.cancel();
+    runStep(cur>=0?cur:0);
+  } else {
+    paused=true;playing=false;
+    if(tid){clearTimeout(tid);tid=null;}
+    if(activeUtt){activeUtt.onend=null;activeUtt.onerror=null;activeUtt=null;}
+    synth.cancel();
+    $('pauseBtn').textContent='▶ Resume';
+    $('playBtn').disabled=false;$('playBtn').textContent='▶ Play';
+  }
+}
+function ctrlRestart(){
+  if(tid){clearTimeout(tid);tid=null;}
+  if(activeUtt){activeUtt.onend=null;activeUtt.onerror=null;activeUtt=null;}
+  synth.cancel();
+  playing=false;paused=false;cur=-1;clearAnno();
+  $('playBtn').textContent='▶ Play';$('playBtn').disabled=false;
+  $('pauseBtn').disabled=true;$('pauseBtn').textContent='⏸ Pause';
+  $('progFill').style.width='0%';$('stepCtr').textContent='0 / '+S.length;
+  $('capTxt').innerHTML='Welcome to the <strong>RadTemplates</strong> Interactive Tour. Press <strong>Play</strong> to begin.';
+  $('capIcon').textContent='👋';$('capStep').textContent='';
+  showScreen('s-login');
+}
+function onSpd(el){$('spdVal').textContent=parseFloat(el.value).toFixed(1)+'x';}
+$('stepCtr').textContent='0 / '+S.length;
+showScreen('s-login');
+</script>
+</body>
+</html>
