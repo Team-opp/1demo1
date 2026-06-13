@@ -1,1275 +1,725 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Radgenie — Interactive Guided Tour</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RadGenie — Guided Workflow Tour</title>
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Segoe UI',system-ui,sans-serif;background:#0f172a;color:#1e293b;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:20px}
-h1.brand{color:#fff;font-size:1.6rem;margin-bottom:6px;letter-spacing:-0.5px}
-.subtitle{color:#94a3b8;font-size:.85rem;margin-bottom:18px}
+  /* ============================================================
+     DESIGN TOKENS
+     Palette: clinical slate/navy with a single confident teal.
+     Type: Space Grotesk (display) · Inter (body) · JetBrains Mono (step nums)
+     ============================================================ */
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@500;700&display=swap');
 
-/* Player controls */
-.player{background:#1e293b;border-radius:14px;padding:14px 20px;width:100%;max-width:860px;display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap}
-.btn{border:none;border-radius:8px;cursor:pointer;font-size:.85rem;font-weight:600;padding:8px 16px;transition:.15s}
-.btn-play{background:#2563eb;color:#fff}.btn-play:hover{background:#1d4ed8}
-.btn-pause{background:#64748b;color:#fff}.btn-pause:hover{background:#475569}
-.btn-restart{background:#0f172a;color:#94a3b8;border:1px solid #334155}.btn-restart:hover{color:#fff}
-.speed-select{background:#0f172a;color:#cbd5e1;border:1px solid #334155;border-radius:6px;padding:6px 10px;font-size:.82rem;cursor:pointer}
-.progress-wrap{flex:1;min-width:180px}
-.progress-bar-bg{background:#334155;border-radius:99px;height:6px;width:100%;cursor:pointer}
-.progress-bar-fill{background:#2563eb;height:6px;border-radius:99px;width:0%;transition:width .3s}
-.step-counter{color:#94a3b8;font-size:.8rem;white-space:nowrap;min-width:70px;text-align:right}
+  :root{
+    --bg:#0b1220;            /* page background, deep navy */
+    --bg-2:#111c30;          /* panel */
+    --ink:#e8eef6;           /* primary text on dark */
+    --ink-dim:#94a6be;       /* secondary text */
+    --line:#223145;          /* hairline */
+    --teal:#2dd4bf;          /* signature accent */
+    --teal-deep:#0f766e;
+    --amber:#f5b14c;
+    --rose:#f4707f;
+    --card:#ffffff;          /* mockup surface (light, like the real app) */
+    --card-ink:#1e293b;
+    --card-dim:#64748b;
+    --card-line:#e5e7eb;
+    --blue:#2f6fed;
+    --radius:14px;
+    --shadow:0 24px 60px rgba(0,0,0,.45);
+  }
 
-/* Narration box */
-.narration-box{background:#1e293b;border-left:4px solid #2563eb;border-radius:10px;padding:14px 18px;width:100%;max-width:860px;margin-bottom:14px;color:#e2e8f0;font-size:.92rem;line-height:1.6;min-height:56px}
-.narration-title{color:#60a5fa;font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:
+      radial-gradient(1200px 600px at 80% -10%, rgba(45,212,191,.08), transparent 60%),
+      radial-gradient(900px 500px at -10% 110%, rgba(47,111,237,.10), transparent 55%),
+      var(--bg);
+    color:var(--ink);
+    font-family:'Inter',system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+  }
 
-/* Screen viewport */
-.viewport{width:100%;max-width:860px;background:#f1f5f9;border-radius:14px;overflow:hidden;border:1px solid #334155;min-height:440px;position:relative}
+  /* ---------- Top bar ---------- */
+  .topbar{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:18px 28px;border-bottom:1px solid var(--line);
+    position:sticky;top:0;z-index:30;
+    background:rgba(11,18,32,.82);backdrop-filter:blur(10px);
+  }
+  .brand{display:flex;align-items:center;gap:12px}
+  .brand .logo{
+    width:34px;height:34px;border-radius:9px;
+    background:linear-gradient(135deg,var(--teal),var(--teal-deep));
+    display:grid;place-items:center;font-weight:700;color:#04201d;font-family:'Space Grotesk';
+    box-shadow:0 4px 16px rgba(45,212,191,.4);
+  }
+  .brand h1{font-family:'Space Grotesk';font-size:18px;margin:0;letter-spacing:-.01em;font-weight:600}
+  .brand h1 span{color:var(--teal)}
+  .brand .sub{font-size:11px;color:var(--ink-dim);letter-spacing:.06em;text-transform:uppercase}
 
-/* ── MOCK UI SCREENS ── */
-.screen{display:none;flex-direction:column;height:100%}
-.screen.active{display:flex}
+  .part-toggle{display:flex;gap:6px;background:var(--bg-2);padding:5px;border-radius:10px;border:1px solid var(--line)}
+  .part-toggle button{
+    font-family:'Inter';font-size:12.5px;font-weight:600;color:var(--ink-dim);
+    background:transparent;border:0;padding:8px 14px;border-radius:7px;cursor:pointer;transition:.18s;
+  }
+  .part-toggle button.active{background:var(--teal);color:#04201d}
+  .part-toggle button:not(.active):hover{color:var(--ink)}
 
-/* Topbar */
-.topbar{background:#1e3a5f;color:#fff;padding:10px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.topbar .logo{font-weight:800;font-size:1rem;letter-spacing:-.3px;white-space:nowrap}
-.topbar .logo span{color:#60a5fa}
-.topbar-right{display:flex;align-items:center;gap:8px;margin-left:auto;flex-wrap:wrap}
-.nav-btn{background:rgba(255,255,255,.1);border:none;color:#fff;border-radius:6px;padding:5px 10px;font-size:.78rem;cursor:pointer;position:relative;white-space:nowrap}
-.nav-btn:hover{background:rgba(255,255,255,.2)}
-.badge{position:absolute;top:-5px;right:-5px;background:#ef4444;color:#fff;border-radius:99px;font-size:.65rem;font-weight:700;padding:1px 5px;min-width:18px;text-align:center}
-.badge.orange{background:#f97316}
-.tools-btn{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:#cbd5e1;border-radius:6px;padding:5px 10px;font-size:.75rem;cursor:pointer}
+  /* ---------- Layout ---------- */
+  .stage-wrap{
+    max-width:1180px;margin:0 auto;padding:30px 24px 160px;
+    display:grid;grid-template-columns:1fr 360px;gap:28px;align-items:start;
+  }
+  @media (max-width:1000px){ .stage-wrap{grid-template-columns:1fr} }
 
-/* Body layout */
-.body-wrap{display:flex;flex:1;overflow:hidden}
-.sidebar{width:180px;background:#fff;border-right:1px solid #e2e8f0;padding:12px;flex-shrink:0;overflow-y:auto}
-.sidebar h4{font-size:.72rem;color:#64748b;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;margin-top:12px}
-.sidebar h4:first-child{margin-top:0}
-.template-item{background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:5px 8px;font-size:.75rem;color:#1e3a5f;cursor:pointer;margin-bottom:4px}
-.template-item:hover,.template-item.active{background:#dbeafe;border-color:#93c5fd}
-.recent-item{font-size:.74rem;color:#475569;padding:3px 0;border-bottom:1px solid #f1f5f9;cursor:pointer}
-.recent-item:hover{color:#1e3a5f}
+  /* ---------- Mockup stage ---------- */
+  .stage{
+    position:relative;background:var(--card);border-radius:var(--radius);
+    box-shadow:var(--shadow);overflow:hidden;border:1px solid rgba(255,255,255,.06);
+    aspect-ratio:16/10;
+  }
+  .stage svg{display:block;width:100%;height:100%}
+  .screenshot-slot{position:absolute;inset:0;display:none}
+  .screenshot-slot img{width:100%;height:100%;object-fit:cover}
 
-/* Editor area */
-.editor-area{flex:1;display:flex;flex-direction:column;overflow:hidden}
-.toolbar{background:#fff;border-bottom:1px solid #e2e8f0;padding:8px 12px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
-.tb-btn{background:#f1f5f9;border:1px solid #e2e8f0;border-radius:5px;padding:4px 9px;font-size:.74rem;cursor:pointer;color:#374151;white-space:nowrap}
-.tb-btn:hover{background:#e2e8f0}
-.tb-btn.ai-suggest{background:#ede9fe;border-color:#c4b5fd;color:#6d28d9}
-.tb-btn.ai-report{background:#dcfce7;border-color:#86efac;color:#166534}
-.tb-btn.ai-image{background:#fef9c3;border-color:#fde047;color:#854d0e}
-.tb-btn.ai-deep{background:#fee2e2;border-color:#fca5a5;color:#991b1b}
-.tb-btn.copy-count{background:#1e3a5f;color:#fff;border-color:#1e3a5f;font-weight:600}
-.tb-btn.format-btn{background:#f0fdf4;border-color:#bbf7d0;color:#166534}
-.editor-content{flex:1;background:#fff;padding:14px;font-size:.82rem;line-height:1.7;color:#1e293b;overflow-y:auto;white-space:pre-wrap;font-family:'Courier New',monospace;min-height:160px}
-.editor-placeholder{color:#94a3b8;font-style:italic;font-family:'Segoe UI',sans-serif}
-.autosave{font-size:.68rem;color:#94a3b8;padding:4px 12px;background:#f8fafc;border-top:1px solid #e2e8f0}
+  /* spotlight overlay dims everything except the highlighted region */
+  .spotlight{position:absolute;inset:0;pointer-events:none;transition:opacity .4s;z-index:5}
+  .highlight-ring{
+    position:absolute;border:2.5px solid var(--teal);border-radius:10px;
+    box-shadow:0 0 0 4000px rgba(8,13,24,.66), 0 0 22px rgba(45,212,191,.7);
+    transition:all .5s cubic-bezier(.4,0,.2,1);z-index:6;pointer-events:none;opacity:0;
+  }
+  .pointer-label{
+    position:absolute;z-index:7;background:var(--teal);color:#04201d;
+    font-size:12px;font-weight:700;padding:5px 11px;border-radius:7px;white-space:nowrap;
+    font-family:'Space Grotesk';box-shadow:0 6px 18px rgba(0,0,0,.4);opacity:0;transition:opacity .4s;
+    transform:translateY(-2px);
+  }
+  .pointer-label::after{content:'';position:absolute;width:8px;height:8px;background:var(--teal);transform:rotate(45deg)}
 
-/* Highlight pulse animation */
-.highlight{animation:pulse 1.2s ease-in-out infinite;border-radius:6px}
-@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(37,99,235,.4)}50%{box-shadow:0 0 0 6px rgba(37,99,235,0)}}
-.highlight-orange{animation:pulse-o 1.2s ease-in-out infinite;border-radius:6px}
-@keyframes pulse-o{0%,100%{box-shadow:0 0 0 0 rgba(249,115,22,.4)}50%{box-shadow:0 0 0 6px rgba(249,115,22,0)}}
-.highlight-green{animation:pulse-g 1.2s ease-in-out infinite;border-radius:6px}
-@keyframes pulse-g{0%,100%{box-shadow:0 0 0 0 rgba(22,163,74,.4)}50%{box-shadow:0 0 0 6px rgba(22,163,74,0)}}
-.highlight-red{animation:pulse-r 1.2s ease-in-out infinite;border-radius:6px}
-@keyframes pulse-r{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.4)}50%{box-shadow:0 0 0 6px rgba(239,68,68,0)}}
+  /* ---------- Narration panel ---------- */
+  .narrate{position:sticky;top:96px;display:flex;flex-direction:column;gap:16px}
+  .step-card{
+    background:var(--bg-2);border:1px solid var(--line);border-radius:var(--radius);
+    padding:22px;min-height:240px;display:flex;flex-direction:column;
+  }
+  .step-meta{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+  .step-num{font-family:'JetBrains Mono';font-size:12px;color:var(--teal);letter-spacing:.05em}
+  .step-chip{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-dim);
+    border:1px solid var(--line);padding:4px 9px;border-radius:20px}
+  .step-title{font-family:'Space Grotesk';font-size:21px;font-weight:600;margin:0 0 10px;line-height:1.2}
+  .step-body{font-size:14.5px;line-height:1.62;color:var(--ink-dim);flex:1}
+  .step-body strong{color:var(--ink);font-weight:600}
+  .step-tag{margin-top:14px;display:inline-flex;align-items:center;gap:7px;font-size:12px;
+    color:var(--amber);background:rgba(245,177,76,.1);border:1px solid rgba(245,177,76,.25);
+    padding:7px 11px;border-radius:9px;width:fit-content;line-height:1.4}
 
-/* Login screen */
-.login-screen{background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:440px;gap:16px}
-.login-box{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:36px 32px;width:320px;text-align:center}
-.login-box .logo-big{font-size:1.6rem;font-weight:800;color:#fff;margin-bottom:4px}
-.login-box .logo-big span{color:#60a5fa}
-.login-box .tagline{font-size:.78rem;color:#94a3b8;margin-bottom:24px}
-.login-input{width:100%;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:8px;padding:10px 14px;color:#fff;font-size:.88rem;margin-bottom:12px;outline:none}
-.login-btn{width:100%;background:#2563eb;border:none;color:#fff;border-radius:8px;padding:10px;font-size:.9rem;font-weight:600;cursor:pointer}
-.login-admin{display:block;margin-top:12px;font-size:.75rem;color:#60a5fa;text-decoration:none}
+  /* progress dots */
+  .progress{display:flex;gap:5px;flex-wrap:wrap;margin-top:4px}
+  .progress i{height:4px;flex:1;min-width:8px;background:var(--line);border-radius:3px;transition:.3s;cursor:pointer}
+  .progress i.done{background:var(--teal-deep)}
+  .progress i.active{background:var(--teal)}
 
-/* Stats panel */
-.stats-panel{background:#f8fafc;padding:16px;flex:1;overflow-y:auto}
-.stats-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
-.stats-title{font-weight:700;font-size:1rem;color:#1e293b}
-.stats-sub{font-size:.74rem;color:#64748b}
-.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
-.kpi-card{background:#fff;border-radius:10px;padding:12px;border:1px solid #e2e8f0;text-align:center}
-.kpi-icon{font-size:1.2rem;margin-bottom:4px}
-.kpi-val{font-size:1.3rem;font-weight:800;color:#1e3a5f}
-.kpi-label{font-size:.68rem;color:#64748b;margin-top:2px}
-.kpi-sub{font-size:.65rem;color:#94a3b8}
-.tab-strip{display:flex;gap:4px;margin-bottom:12px;border-bottom:2px solid #e2e8f0;padding-bottom:0}
-.tab-pill{padding:6px 14px;font-size:.76rem;color:#64748b;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px}
-.tab-pill.active{color:#2563eb;border-bottom-color:#2563eb;font-weight:600}
-.chart-placeholder{background:#fff;border:1px solid #e2e8f0;border-radius:8px;height:90px;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:.78rem;gap:8px}
-.mini-bar{display:flex;gap:3px;align-items:flex-end;height:50px}
-.mini-bar div{width:18px;background:#dbeafe;border-radius:3px 3px 0 0}
-.mini-bar div:nth-child(3){background:#2563eb}
-.mini-bar div:last-child{background:#93c5fd}
-.stat-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid #f1f5f9;font-size:.78rem}
-.stat-label{color:#475569}
-.stat-val{font-weight:600;color:#1e293b}
+  /* ---------- Controls ---------- */
+  .controls{
+    position:fixed;left:50%;bottom:26px;transform:translateX(-50%);z-index:40;
+    display:flex;align-items:center;gap:10px;background:rgba(17,28,48,.92);
+    border:1px solid var(--line);padding:12px 16px;border-radius:16px;backdrop-filter:blur(12px);
+    box-shadow:0 18px 50px rgba(0,0,0,.5);max-width:calc(100vw - 32px);
+  }
+  .ctrl{
+    background:var(--bg);border:1px solid var(--line);color:var(--ink);
+    width:42px;height:42px;border-radius:11px;cursor:pointer;display:grid;place-items:center;
+    transition:.16s;font-size:16px;
+  }
+  .ctrl:hover{border-color:var(--teal);color:var(--teal)}
+  .ctrl.play{width:54px;height:54px;background:var(--teal);border-color:var(--teal);color:#04201d;font-size:20px}
+  .ctrl.play:hover{filter:brightness(1.08)}
+  .ctrl:disabled{opacity:.35;cursor:not-allowed}
+  .ctrl-sep{width:1px;height:30px;background:var(--line);margin:0 2px}
+  .ctrl-meta{display:flex;flex-direction:column;gap:2px;padding:0 6px;min-width:96px}
+  .ctrl-meta .pos{font-family:'JetBrains Mono';font-size:13px;color:var(--ink)}
+  .ctrl-meta .lbl{font-size:10px;color:var(--ink-dim);text-transform:uppercase;letter-spacing:.08em}
+  .sound-toggle{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--ink-dim);cursor:pointer;user-select:none;padding-left:4px}
+  .sound-toggle input{accent-color:var(--teal)}
 
-/* QA Board */
-.qa-panel{background:#f8fafc;padding:16px;flex:1;overflow-y:auto}
-.panel-title{font-weight:700;font-size:.95rem;color:#1e293b;margin-bottom:14px;display:flex;align-items:center;gap:8px}
-.qa-case{background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:12px 14px;margin-bottom:10px}
-.qa-case.urgent{border-left:4px solid #ef4444}
-.qa-case.done{border-left:4px solid #22c55e;opacity:.75}
-.qa-acc{font-weight:700;font-size:.85rem;color:#1e3a5f}
-.qa-score{display:inline-block;background:#fee2e2;color:#991b1b;border-radius:4px;padding:2px 7px;font-size:.72rem;font-weight:700;margin-left:6px}
-.qa-score.s2{background:#fef9c3;color:#854d0e}
-.qa-score.s4{background:#fee2e2;color:#991b1b}
-.qa-status{font-size:.72rem;color:#ef4444;font-weight:600;margin-top:2px}
-.qa-status.done{color:#22c55e}
-.qa-meta{font-size:.72rem;color:#64748b;margin-top:4px;margin-bottom:8px}
-.qa-actions{display:flex;gap:6px}
-.qa-act-btn{border:1px solid #e2e8f0;background:#f8fafc;border-radius:6px;padding:4px 10px;font-size:.72rem;cursor:pointer}
-.qa-act-btn.agree{border-color:#86efac;background:#f0fdf4;color:#166534}
-.qa-act-btn.dispute{border-color:#fca5a5;background:#fff5f5;color:#991b1b}
-.qa-act-btn.respond{border-color:#93c5fd;background:#eff6ff;color:#1e40af}
+  /* intro overlay */
+  .intro{
+    position:fixed;inset:0;z-index:60;background:rgba(8,13,24,.93);backdrop-filter:blur(6px);
+    display:grid;place-items:center;text-align:center;padding:24px;
+  }
+  .intro-card{max-width:560px}
+  .intro h2{font-family:'Space Grotesk';font-size:34px;margin:0 0 6px;letter-spacing:-.02em}
+  .intro h2 span{color:var(--teal)}
+  .intro p{color:var(--ink-dim);font-size:15px;line-height:1.6;margin:0 auto 26px;max-width:460px}
+  .intro .start{
+    background:var(--teal);color:#04201d;border:0;font-family:'Space Grotesk';font-weight:700;
+    font-size:16px;padding:15px 34px;border-radius:12px;cursor:pointer;box-shadow:0 10px 30px rgba(45,212,191,.35);
+    transition:.16s;
+  }
+  .intro .start:hover{filter:brightness(1.07);transform:translateY(-1px)}
+  .intro .note{margin-top:18px;font-size:12px;color:var(--ink-dim)}
+  .intro .parts{display:flex;gap:14px;justify-content:center;margin:22px 0 4px;flex-wrap:wrap}
+  .intro .parts div{background:var(--bg-2);border:1px solid var(--line);border-radius:11px;padding:14px 18px;text-align:left;max-width:230px}
+  .intro .parts h4{margin:0 0 4px;font-family:'Space Grotesk';font-size:14px;color:var(--teal)}
+  .intro .parts p{font-size:12px;margin:0;color:var(--ink-dim)}
 
-/* QA response form */
-.form-panel{background:#f8fafc;padding:16px;flex:1;overflow-y:auto}
-.form-section{background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:14px;margin-bottom:12px}
-.form-section-title{font-size:.8rem;font-weight:700;color:#1e3a5f;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #f1f5f9}
-.form-detail-row{display:flex;gap:6px;margin-bottom:6px;font-size:.76rem}
-.form-detail-label{color:#64748b;min-width:90px}
-.form-detail-val{color:#1e293b;font-weight:500}
-.finding-box{background:#fef9c3;border:1px solid #fde047;border-radius:6px;padding:10px;font-size:.76rem;color:#713f12;margin-top:8px;line-height:1.6}
-.stance-options{display:flex;flex-direction:column;gap:6px;margin-bottom:12px}
-.stance-opt{background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:8px 12px;font-size:.76rem;cursor:pointer}
-.stance-opt.selected{background:#eff6ff;border-color:#93c5fd;color:#1e40af}
-.text-area-mock{background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:10px;font-size:.76rem;color:#374151;min-height:60px;line-height:1.6}
-.submit-btn{background:#1e3a5f;color:#fff;border:none;border-radius:8px;padding:9px 20px;font-size:.82rem;font-weight:600;cursor:pointer;margin-top:8px}
-.cancel-btn{background:#f1f5f9;color:#64748b;border:none;border-radius:8px;padding:9px 16px;font-size:.82rem;cursor:pointer;margin-top:8px;margin-left:8px}
-
-/* Peer review scoring */
-.pr-score-panel{background:#f8fafc;padding:16px;flex:1;overflow-y:auto}
-.score-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:14px}
-.score-card{background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:10px 6px;text-align:center}
-.score-num{font-size:1.4rem;font-weight:800;color:#1e3a5f;margin-bottom:2px}
-.score-label{font-size:.68rem;color:#64748b}
-.score-card.s0{border-top:3px solid #22c55e}
-.score-card.s1{border-top:3px solid #84cc16}
-.score-card.s2{border-top:3px solid #eab308}
-.score-card.s3{border-top:3px solid #f97316}
-.score-card.s4{border-top:3px solid #ef4444}
-.pr-rule{background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px 14px;font-size:.76rem;color:#1e40af;line-height:1.6}
-
-/* PR Board */
-.pr-board{background:#f8fafc;padding:16px;flex:1;overflow-y:auto}
-.pr-case{background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:12px 14px;margin-bottom:8px}
-.pr-type-badge{display:inline-block;border-radius:4px;font-size:.66rem;font-weight:700;padding:2px 7px;margin-left:6px}
-.pr-type-badge.reviewer{background:#ede9fe;color:#6d28d9}
-.pr-type-badge.first-reader{background:#dcfce7;color:#166534}
-.pr-case-acc{font-weight:700;font-size:.83rem;color:#1e3a5f}
-.pr-case-meta{font-size:.72rem;color:#64748b;margin:4px 0 8px}
-.pr-case-btn{background:#1e3a5f;color:#fff;border:none;border-radius:6px;padding:5px 12px;font-size:.73rem;cursor:pointer}
-.pr-case-btn.respond{background:#f0fdf4;color:#166534;border:1px solid #86efac}
-
-/* Peer review full form */
-.pr-form{background:#f8fafc;padding:16px;flex:1;overflow-y:auto}
-.report-box{background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:12px;font-size:.76rem;line-height:1.7;color:#374151;margin-bottom:12px;font-family:'Courier New',monospace}
-.score-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
-.score-opt{background:#f1f5f9;border:1px solid #e2e8f0;border-radius:6px;padding:5px 12px;font-size:.74rem;cursor:pointer}
-.score-opt.selected{background:#eff6ff;border-color:#93c5fd;color:#1e40af;font-weight:600}
-
-/* Respond to review */
-.respond-form{background:#f8fafc;padding:16px;flex:1;overflow-y:auto}
-.reviewer-finding{background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:12px;margin-bottom:10px}
-.reviewer-finding .score-badge{display:inline-block;background:#fef9c3;color:#854d0e;border-radius:4px;padding:2px 8px;font-size:.72rem;font-weight:700;margin-left:6px}
-.response-opts{display:flex;gap:6px;margin-bottom:10px}
-.resp-btn{flex:1;border:1px solid #e2e8f0;background:#f8fafc;border-radius:6px;padding:7px 4px;font-size:.72rem;cursor:pointer;text-align:center}
-.resp-btn.agree{border-color:#86efac;background:#f0fdf4;color:#166534}
-.resp-btn.disagree{border-color:#fca5a5;background:#fff5f5;color:#991b1b}
-.adjudication-btn{width:100%;background:#7c3aed;color:#fff;border:none;border-radius:6px;padding:7px;font-size:.74rem;cursor:pointer;margin-top:8px}
-
-/* Schedule */
-.schedule-panel{background:#f8fafc;padding:16px;flex:1;overflow-y:auto}
-.schedule-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
-.schedule-month{font-weight:700;font-size:.9rem;color:#1e293b}
-.sched-nav{background:#e2e8f0;border:none;border-radius:4px;padding:3px 8px;cursor:pointer;font-size:.78rem}
-.sched-table{width:100%;border-collapse:collapse;font-size:.76rem}
-.sched-table th{background:#1e3a5f;color:#fff;padding:7px 10px;text-align:left;font-weight:600}
-.sched-table td{padding:7px 10px;border-bottom:1px solid #f1f5f9;background:#fff}
-.sched-table tr:hover td{background:#f8fafc}
-.shift-chip{display:inline-block;border-radius:4px;padding:2px 8px;font-size:.7rem;font-weight:600}
-.shift-morning{background:#dbeafe;color:#1e40af}
-.shift-afternoon{background:#dcfce7;color:#166534}
-.shift-night{background:#ede9fe;color:#6d28d9}
-.shift-off{background:#f1f5f9;color:#94a3b8}
-
-/* Macros */
-.macro-panel{background:#f8fafc;padding:16px;flex:1;overflow-y:auto}
-.macro-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
-.macro-form{background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:14px;margin-bottom:12px}
-.macro-form-row{display:flex;gap:8px;align-items:flex-end;margin-bottom:8px;flex-wrap:wrap}
-.mock-input{background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:7px 10px;font-size:.76rem;color:#374151;flex:1;min-width:80px}
-.mock-select{background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:7px 10px;font-size:.76rem;color:#374151}
-.add-btn{background:#1e3a5f;color:#fff;border:none;border-radius:6px;padding:7px 14px;font-size:.76rem;cursor:pointer;white-space:nowrap}
-.macro-list{background:#fff;border:1px solid #e2e8f0;border-radius:10px;overflow:hidden}
-.macro-item{display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid #f1f5f9;font-size:.76rem}
-.macro-trigger{background:#ede9fe;color:#6d28d9;border-radius:4px;padding:2px 8px;font-weight:700;min-width:70px;font-size:.72rem}
-.macro-modality{background:#dbeafe;color:#1e40af;border-radius:4px;padding:2px 7px;font-size:.68rem}
-.macro-text{color:#475569;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.macro-del{color:#ef4444;background:none;border:none;cursor:pointer;font-size:.78rem}
-.macro-tip{background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:9px 14px;font-size:.74rem;color:#1e40af;margin-top:10px}
-
-/* AI panels */
-.ai-panel{background:#fff;border-top:1px solid #e2e8f0;padding:12px;max-height:200px;overflow-y:auto}
-.ai-panel-title{font-size:.78rem;font-weight:700;color:#6d28d9;margin-bottom:10px;display:flex;align-items:center;gap:6px}
-.ai-item{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:9px 12px;margin-bottom:7px;font-size:.76rem;display:flex;align-items:flex-start;gap:8px}
-.ai-item.warning{border-left:3px solid #f59e0b}
-.ai-item.ok{border-left:3px solid #22c55e}
-.ai-item.info{border-left:3px solid #3b82f6}
-.ai-insert-btn{background:#1e3a5f;color:#fff;border:none;border-radius:4px;padding:2px 8px;font-size:.68rem;cursor:pointer;white-space:nowrap;margin-left:auto;flex-shrink:0}
-
-/* Tools menu */
-.tools-dropdown{background:#fff;border:1px solid #e2e8f0;border-radius:10px;box-shadow:0 8px 32px rgba(0,0,0,.12);padding:10px;position:absolute;top:50px;right:20px;width:240px;z-index:10}
-.tool-item{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:6px;cursor:pointer;font-size:.8rem;color:#374151}
-.tool-item:hover{background:#f1f5f9}
-.tool-item-icon{font-size:1rem;width:20px;text-align:center}
-.tool-item-desc{font-size:.68rem;color:#94a3b8;margin-top:1px}
-
-/* Template search results */
-.search-results{background:#fff;border:1px solid #e2e8f0;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.08);overflow:hidden;margin:8px}
-.search-result-item{display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid #f1f5f9;cursor:pointer;font-size:.78rem}
-.search-result-item:hover{background:#f8fafc}
-.search-result-item.active{background:#eff6ff}
-.mod-chip{background:#dbeafe;color:#1e40af;border-radius:4px;padding:1px 7px;font-size:.67rem;font-weight:700}
-.pagination-row{padding:7px 14px;font-size:.72rem;color:#64748b;display:flex;align-items:center;gap:10px}
-
-/* Shortcut overlay */
-.shortcut-overlay{background:#fff;border:1px solid #e2e8f0;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.1);overflow:hidden;margin:0 12px}
-.shortcut-header{background:#f8fafc;border-bottom:1px solid #e2e8f0;padding:7px 12px;font-size:.72rem;color:#64748b}
-.shortcut-item{display:flex;align-items:center;gap:10px;padding:7px 12px;border-bottom:1px solid #f1f5f9;cursor:pointer;font-size:.76rem}
-.shortcut-item:first-of-type{background:#eff6ff}
-.shortcut-item .mod-chip{margin-left:auto}
-
-/* Whats new */
-.whatsnew-dot{width:8px;height:8px;background:#ef4444;border-radius:50%;display:inline-block;margin-left:4px;vertical-align:middle}
-
-/* Tour complete */
-.complete-screen{background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:440px;gap:16px;text-align:center;padding:30px}
-.complete-title{font-size:1.5rem;font-weight:800;color:#fff}
-.complete-sub{font-size:.88rem;color:#94a3b8;max-width:460px;line-height:1.6}
-.complete-chips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:8px}
-.complete-chip{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:#cbd5e1;border-radius:8px;padding:7px 14px;font-size:.78rem}
-.restart-hint{color:#60a5fa;font-size:.78rem;margin-top:6px}
-
-/* copy count animation */
-.copy-success{background:#f0fdf4;border:2px solid #22c55e;border-radius:8px;padding:10px 16px;font-size:.8rem;color:#166534;font-weight:600;text-align:center;margin:8px}
+  .hidden{display:none !important}
 </style>
 </head>
 <body>
 
-<h1 class="brand">🏥 Radgenie — <span style="color:#60a5fa">Interactive Tour</span></h1>
-<p class="subtitle">Employee Workflow Guide · All Features</p>
-
-<!-- Player -->
-<div class="player">
-  <button class="btn btn-play" id="btnPlay" onclick="tourPlay()">▶ Play</button>
-  <button class="btn btn-pause" id="btnPause" onclick="tourPause()" style="display:none">⏸ Pause</button>
-  <button class="btn btn-restart" onclick="tourRestart()">↺ Restart</button>
-  <select class="speed-select" id="speedSel" onchange="changeSpeed(this.value)">
-    <option value="1">Speed 1.0×</option>
-    <option value="1.5">Speed 1.5×</option>
-    <option value="0.75">Speed 0.75×</option>
-  </select>
-  <div class="progress-wrap">
-    <div class="progress-bar-bg" onclick="seekTour(event)">
-      <div class="progress-bar-fill" id="progressFill"></div>
+<div class="topbar">
+  <div class="brand">
+    <div class="logo">R</div>
+    <div>
+      <h1>Rad<span>Genie</span></h1>
+      <div class="sub">Guided Workflow Tour</div>
     </div>
   </div>
-  <div class="step-counter" id="stepCounter">0 / 0 Loading…</div>
+  <div class="part-toggle" id="partToggle">
+    <button class="active" data-part="1">Part 1 · Self Reporting</button>
+    <button data-part="2">Part 2 · Case Loaded For You</button>
+  </div>
 </div>
 
-<!-- Narration -->
-<div class="narration-box">
-  <div class="narration-title">📢 Narration</div>
-  <div id="narrationText">Press Play to begin the tour.</div>
+<div class="stage-wrap">
+  <!-- STAGE: mockup + spotlight -->
+  <div>
+    <div class="stage" id="stage">
+      <!-- SCREENSHOT SWAP SLOT (per part). To use a real screenshot instead of the
+           SVG mockup: drop an image into the repo and set its <img src> below, then
+           add class "show" to the matching .screenshot-slot via the data file. -->
+      <div class="screenshot-slot" id="slot-1"><!-- <img src="dashboard.png" alt="Rad dashboard"> --></div>
+      <div class="screenshot-slot" id="slot-2"><!-- <img src="coord.png" alt="Coordinator flow"> --></div>
+
+      <div id="mockMount"></div>
+      <div class="highlight-ring" id="ring"></div>
+      <div class="pointer-label" id="plabel"></div>
+    </div>
+  </div>
+
+  <!-- NARRATION -->
+  <div class="narrate">
+    <div class="step-card">
+      <div class="step-meta">
+        <span class="step-num" id="stepNum">STEP 01</span>
+        <span class="step-chip" id="stepChip">Login</span>
+      </div>
+      <h3 class="step-title" id="stepTitle">—</h3>
+      <div class="step-body" id="stepBody">—</div>
+      <div class="step-tag hidden" id="stepTag"></div>
+    </div>
+    <div class="progress" id="progress"></div>
+  </div>
 </div>
 
-<!-- Viewport -->
-<div class="viewport" id="viewport">
-
-  <!-- SCREEN 1: Welcome -->
-  <div class="screen active" id="s1">
-    <div class="login-screen">
-      <div class="login-box">
-        <div class="logo-big">Rad<span>genie</span></div>
-        <div class="tagline">Radiology Reporting Platform</div>
-        <input class="login-input" placeholder="Employee Code" value=""/>
-        <button class="login-btn">Access System</button>
-        <a href="#" class="login-admin">Admin Access</a>
-      </div>
-    </div>
+<!-- CONTROLS -->
+<div class="controls">
+  <button class="ctrl" id="btnRestart" title="Restart from step 1">↺</button>
+  <button class="ctrl" id="btnPrev" title="Previous step">‹</button>
+  <button class="ctrl play" id="btnPlay" title="Play / Pause">▶</button>
+  <button class="ctrl" id="btnNext" title="Next step">›</button>
+  <div class="ctrl-sep"></div>
+  <div class="ctrl-meta">
+    <span class="pos" id="ctrlPos">01 / 01</span>
+    <span class="lbl" id="ctrlPart">Part 1</span>
   </div>
+  <label class="sound-toggle"><input type="checkbox" id="soundChk" checked> Voice</label>
+</div>
 
-  <!-- SCREEN 2: Login typing -->
-  <div class="screen" id="s2">
-    <div class="login-screen">
-      <div class="login-box">
-        <div class="logo-big">Rad<span>genie</span></div>
-        <div class="tagline">Your personalised dashboard loads on authentication</div>
-        <input class="login-input highlight" placeholder="Employee Code" value="RSSE1029"/>
-        <button class="login-btn">Access System</button>
-      </div>
+<!-- INTRO -->
+<div class="intro" id="intro">
+  <div class="intro-card">
+    <h2>The Rad<span>Genie</span> Workflow</h2>
+    <p>A guided, narrated walkthrough of how radiologists report with RadGenie — from login to a finished report in PACS. Sound on for the best experience.</p>
+    <div class="parts">
+      <div><h4>Part 1 · Self Reporting</h4><p>You drive the whole report yourself, end to end.</p></div>
+      <div><h4>Part 2 · Case Loaded For You</h4><p>A case is sent to you ready to open — you focus only on reporting.</p></div>
     </div>
+    <button class="start" id="startBtn">▶ Start the tour</button>
+    <div class="note">Use Play / Pause / Restart or the arrows any time. Switch parts up top.</div>
   </div>
-
-  <!-- SCREEN 3: Navbar overview -->
-  <div class="screen" id="s3">
-    <div class="topbar">
-      <span class="logo">Rad<span>genie</span></span>
-      <span style="font-size:.72rem;color:#94a3b8;margin-left:4px">Welcome, Dr. Sharma</span>
-      <div class="topbar-right">
-        <button class="tools-btn">🔧 Tools</button>
-        <button class="tools-btn">✨ What's New <span class="whatsnew-dot"></span></button>
-        <button class="tools-btn">Logout</button>
-        <button class="nav-btn">🎤</button>
-        <button class="nav-btn highlight">📊 My Stats</button>
-        <button class="nav-btn highlight" style="animation-delay:.3s">QA Board <span class="badge">3</span></button>
-        <button class="nav-btn highlight" style="animation-delay:.6s">Peer Review <span class="badge orange">2</span></button>
-        <button class="nav-btn highlight" style="animation-delay:.9s">Templates ▼</button>
-        <button class="nav-btn highlight" style="animation-delay:1.2s">📅 Events</button>
-      </div>
-    </div>
-    <div style="flex:1;background:#f1f5f9;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px;padding:20px">
-      <div style="font-size:2rem">👆</div>
-      <div style="font-size:.85rem;color:#64748b;text-align:center">Your main navigation — My Stats, QA Board, Peer Review, Templates, Events</div>
-    </div>
-  </div>
-
-  <!-- SCREEN 4: QA Badge -->
-  <div class="screen" id="s4">
-    <div class="topbar">
-      <span class="logo">Rad<span>genie</span></span>
-      <div class="topbar-right">
-        <button class="nav-btn">📊 My Stats</button>
-        <button class="nav-btn highlight-red" style="padding:5px 12px">QA Board <span class="badge">3</span></button>
-        <button class="nav-btn">Peer Review <span class="badge orange">2</span></button>
-        <button class="nav-btn">Templates ▼</button>
-        <button class="nav-btn">📅 Events</button>
-      </div>
-    </div>
-    <div style="flex:1;background:#f1f5f9;display:flex;align-items:center;justify-content:center;padding:20px">
-      <div style="background:#fff;border-radius:12px;padding:20px;max-width:360px;border:2px solid #fca5a5">
-        <div style="font-size:.9rem;font-weight:700;color:#991b1b;margin-bottom:8px">🔴 QA Board Counter</div>
-        <div style="font-size:.8rem;color:#374151;line-height:1.7">The <strong>red badge</strong> shows how many QA cases are pending your response. These are quality assessments assigned by HR that require you to <strong>Agree</strong>, <strong>Dispute</strong>, or <strong>Respond</strong> before the due date.<br><br>When the count reaches zero the badge disappears. Overdue cases trigger an urgent alert — never ignore this badge.</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- SCREEN 5: Peer Review Badge -->
-  <div class="screen" id="s5">
-    <div class="topbar">
-      <span class="logo">Rad<span>genie</span></span>
-      <div class="topbar-right">
-        <button class="nav-btn">📊 My Stats</button>
-        <button class="nav-btn">QA Board <span class="badge">3</span></button>
-        <button class="nav-btn highlight-orange">Peer Review <span class="badge orange">2</span></button>
-        <button class="nav-btn">Templates ▼</button>
-        <button class="nav-btn">📅 Events</button>
-      </div>
-    </div>
-    <div style="flex:1;background:#f1f5f9;display:flex;align-items:center;justify-content:center;padding:20px">
-      <div style="background:#fff;border-radius:12px;padding:20px;max-width:360px;border:2px solid #fed7aa">
-        <div style="font-size:.9rem;font-weight:700;color:#c2410c;margin-bottom:8px">🟠 Peer Review Counter</div>
-        <div style="font-size:.8rem;color:#374151;line-height:1.7">The <strong>orange badge</strong> shows pending peer review items — either cases assigned to you for scoring, or reviewer feedback on your own reports that require your response.<br><br>Missing these deadlines affects your compliance score in My Stats.</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- SCREEN 6: Reporting editor overview -->
-  <div class="screen" id="s6">
-    <div class="topbar">
-      <span class="logo">Rad<span>genie</span></span>
-      <div class="topbar-right">
-        <button class="nav-btn">📊 My Stats</button>
-        <button class="nav-btn">QA Board <span class="badge">3</span></button>
-        <button class="nav-btn">Peer Review <span class="badge orange">2</span></button>
-        <button class="nav-btn">US ▼</button>
-        <select style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:4px;font-size:.75rem;padding:4px">
-          <option>♂ Male</option><option>♀ Female</option>
-        </select>
-      </div>
-    </div>
-    <div class="body-wrap">
-      <div class="sidebar">
-        <h4>Recent</h4>
-        <div class="recent-item">US Abdomen</div>
-        <div class="recent-item">US Pelvis</div>
-        <h4>US Templates</h4>
-        <div class="template-item active">US Abdomen ✓</div>
-        <div class="template-item">US Pelvis</div>
-        <div class="template-item">US Thyroid</div>
-        <div class="template-item">US KUB</div>
-        <div class="template-item">US Obstetric</div>
-      </div>
-      <div class="editor-area">
-        <div class="toolbar highlight">
-          <span style="font-size:.72rem;color:#64748b">Institution:</span>
-          <select style="border:1px solid #e2e8f0;border-radius:5px;font-size:.73rem;padding:3px 6px">
-            <option>City Hospital</option>
-          </select>
-          <span style="font-size:.72rem;color:#64748b">Acc#:</span>
-          <input style="border:1px solid #e2e8f0;border-radius:5px;font-size:.73rem;padding:3px 6px;width:100px" value="SU1234567"/>
-          <span style="margin-left:4px;font-size:.72rem">14px</span>
-          <button class="tb-btn">B</button><button class="tb-btn">I</button><button class="tb-btn">U</button>
-          <button class="tb-btn">• List</button>
-          <button class="tb-btn format-btn">📝 Format</button>
-          <button class="tb-btn ai-suggest">💡 Suggest AI</button>
-          <button class="tb-btn ai-report">🤖 Report AI</button>
-          <button class="tb-btn ai-image">📷 Image AI</button>
-          <button class="tb-btn ai-deep">🔍 Deep Check AI</button>
-          <button class="tb-btn">📋 Copy</button>
-          <button class="tb-btn copy-count">📊 Copy & Count</button>
-          <button class="tb-btn">🗑️ Clear</button>
-          <button class="tb-btn">💾 Save</button>
-          <button class="tb-btn">📂 Load ▼</button>
-        </div>
-        <div class="editor-content"><strong>ULTRASOUND ABDOMEN</strong>
-
-<strong>TECHNIQUE:</strong> Grey-scale and colour Doppler examination.
-
-<strong>LIVER:</strong> Normal in size and echogenicity. No focal lesion. Portal vein patent.
-
-<strong>GALLBLADDER:</strong> Normal. No calculi or wall thickening.
-
-<strong>KIDNEYS:</strong> Normal bilaterally. No hydronephrosis or calculi.
-
-<strong>IMPRESSION:</strong>
-Normal ultrasound examination of the abdomen.</div>
-        <div class="autosave">⏱ 30s auto-save active · Last saved: just now</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- SCREEN 7: Institution & Accession highlight -->
-  <div class="screen" id="s7">
-    <div class="topbar"><span class="logo">Rad<span>genie</span></span><div class="topbar-right"><button class="nav-btn">US ▼</button></div></div>
-    <div class="body-wrap">
-      <div class="sidebar">
-        <h4>US Templates</h4>
-        <div class="template-item active">US Abdomen ✓</div>
-        <div class="template-item">US Pelvis</div>
-      </div>
-      <div class="editor-area">
-        <div class="toolbar">
-          <span style="font-size:.72rem;color:#64748b">Institution:</span>
-          <select class="highlight" style="border:2px solid #2563eb;border-radius:5px;font-size:.73rem;padding:3px 6px">
-            <option>City Hospital</option>
-          </select>
-          <span style="font-size:.72rem;color:#64748b;margin-left:8px">Acc#:</span>
-          <input class="highlight" style="border:2px solid #2563eb;border-radius:5px;font-size:.73rem;padding:3px 6px;width:110px" value="SU1234567" placeholder="Required"/>
-          <button class="tb-btn copy-count" style="margin-left:auto">📊 Copy & Count</button>
-        </div>
-        <div style="background:#fef9c3;border:1px solid #fde047;border-radius:6px;margin:10px;padding:10px;font-size:.76rem;color:#713f12">
-          ⚠️ <strong>These two fields are mandatory.</strong> Institution and Accession Number must be filled before submission. The system will block Copy & Count if either is missing.
-        </div>
-        <div class="editor-content"><strong>ULTRASOUND ABDOMEN</strong>
-
-<strong>LIVER:</strong> Normal in size and echogenicity...</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- SCREEN 8: Gender & Modality -->
-  <div class="screen" id="s8">
-    <div class="topbar">
-      <span class="logo">Rad<span>genie</span></span>
-      <div class="topbar-right">
-        <div class="highlight" style="display:flex;gap:4px;border-radius:6px;padding:2px">
-          <button style="background:#1e3a5f;color:#fff;border:none;border-radius:4px;padding:4px 10px;font-size:.75rem">♂ Male</button>
-          <button style="background:rgba(255,255,255,.1);color:#cbd5e1;border:none;border-radius:4px;padding:4px 10px;font-size:.75rem">♀ Female</button>
-        </div>
-        <button class="nav-btn highlight-orange" style="margin-left:6px">US ▼ &nbsp; CT &nbsp; MRI &nbsp; XR</button>
-      </div>
-    </div>
-    <div style="flex:1;background:#f1f5f9;display:flex;align-items:center;justify-content:center;padding:20px;gap:16px;flex-wrap:wrap">
-      <div style="background:#fff;border-radius:10px;padding:16px;max-width:220px;border:2px solid #93c5fd">
-        <div style="font-size:.8rem;font-weight:700;color:#1e3a5f;margin-bottom:6px">Gender Selection</div>
-        <div style="font-size:.75rem;color:#475569;line-height:1.6">Used by AI tools to contextualise findings. Suggest AI will not recommend female-specific templates for a male patient.</div>
-      </div>
-      <div style="background:#fff;border-radius:10px;padding:16px;max-width:220px;border:2px solid #86efac">
-        <div style="font-size:.8rem;font-weight:700;color:#1e3a5f;margin-bottom:6px">Modality Tab</div>
-        <div style="font-size:.75rem;color:#475569;line-height:1.6">Filters your template library to show only relevant templates. Also enables modality-mismatch detection before submission.</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- SCREEN 9: Template Search -->
-  <div class="screen" id="s9">
-    <div class="topbar"><span class="logo">Rad<span>genie</span></span><div class="topbar-right"><button class="nav-btn">CT ▼</button></div></div>
-    <div class="body-wrap">
-      <div class="sidebar">
-        <h4>Search</h4>
-        <input class="highlight" style="width:100%;border:2px solid #2563eb;border-radius:6px;padding:6px 8px;font-size:.75rem;color:#1e293b" value="CT head" placeholder="Search templates…"/>
-        <div style="font-size:.68rem;color:#64748b;margin-top:4px">Ctrl+K from anywhere</div>
-        <h4>CT Templates</h4>
-        <div class="template-item">CT Chest</div>
-        <div class="template-item">CT Abdomen</div>
-        <div class="template-item">CT Brain</div>
-      </div>
-      <div class="editor-area">
-        <div class="search-results">
-          <div style="padding:8px 14px;font-size:.73rem;color:#64748b;background:#f8fafc;border-bottom:1px solid #e2e8f0">Page 1 of 2 · 8 results for "CT head"</div>
-          <div class="search-result-item active">CT Head (Routine) <span class="mod-chip" style="margin-left:auto">CT</span></div>
-          <div class="search-result-item">CT Head (Trauma) <span class="mod-chip" style="margin-left:auto">CT</span></div>
-          <div class="search-result-item">CT Head with Contrast <span class="mod-chip" style="margin-left:auto">CT</span></div>
-          <div class="search-result-item">CT Head (Post-op) <span class="mod-chip" style="margin-left:auto">CT</span></div>
-          <div class="search-result-item">CT Head Perfusion <span class="mod-chip" style="margin-left:auto">CT</span></div>
-          <div class="pagination-row">◀ &nbsp; Page 1 of 2 &nbsp; ▶ &nbsp; <span style="margin-left:auto;color:#2563eb;cursor:pointer">← Click any result to load</span></div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- SCREEN 10: // Shortcut -->
-  <div class="screen" id="s10">
-    <div class="topbar"><span class="logo">Rad<span>genie</span></span><div class="topbar-right"><button class="nav-btn">CT ▼</button></div></div>
-    <div class="body-wrap">
-      <div class="sidebar">
-        <h4>CT Templates</h4>
-        <div class="template-item">CT Chest</div>
-        <div class="template-item">CT Abdomen</div>
-        <div class="template-item">CT Brain</div>
-      </div>
-      <div class="editor-area">
-        <div class="toolbar">
-          <button class="tb-btn copy-count">📊 Copy & Count</button>
-        </div>
-        <div class="editor-content"><span class="editor-placeholder">Start typing your report or use the // shortcut…</span>
-
-<span style="background:#fef9c3;padding:2px 4px;border-radius:3px;font-weight:700">//ct head</span></div>
-        <div class="shortcut-overlay highlight-green">
-          <div class="shortcut-header">🔍 Templates matching "ct head" — 5 results &nbsp;·&nbsp; ↑↓ navigate &nbsp;·&nbsp; Enter or click to load</div>
-          <div class="shortcut-item">CT Head (Routine) <span class="mod-chip">CT</span></div>
-          <div class="shortcut-item" style="background:#fff">CT Head (Trauma) <span class="mod-chip">CT</span></div>
-          <div class="shortcut-item" style="background:#fff">CT Head with Contrast <span class="mod-chip">CT</span></div>
-          <div class="shortcut-item" style="background:#fff">CT Head (Post-op) <span class="mod-chip">CT</span></div>
-          <div class="shortcut-item" style="background:#fff">CT Head Perfusion <span class="mod-chip">CT</span></div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- SCREEN 11: Voice Dictation -->
-  <div class="screen" id="s11">
-    <div class="topbar"><span class="logo">Rad<span>genie</span></span><div class="topbar-right"><button class="nav-btn">🎤</button><button class="nav-btn">CT ▼</button></div></div>
-    <div class="body-wrap">
-      <div class="sidebar">
-        <h4>Voice Input</h4>
-        <div style="font-size:.72rem;color:#475569;line-height:1.6;padding:4px 0">Select dictation model before recording:</div>
-        <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;padding:8px;font-size:.72rem;color:#1e40af;margin-top:4px">✅ Medical Dictation<br><span style="color:#64748b">Radiology terms, punctuation, Indian English</span></div>
-        <div style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:6px;padding:8px;font-size:.72rem;color:#94a3b8;margin-top:6px">⚪ Conversation<br><span style="font-size:.68rem">Doctor-patient dialogue only</span></div>
-      </div>
-      <div class="editor-area">
-        <div class="toolbar">
-          <button class="tb-btn highlight-red" style="background:#fee2e2;border-color:#fca5a5;color:#991b1b;font-weight:700">🎙️ Recording…</button>
-          <span style="font-size:.72rem;color:#64748b;margin-left:8px">Speak naturally. Say "colon" → inserts :</span>
-        </div>
-        <div style="background:#fff;border:2px solid #ef4444;border-radius:8px;margin:10px;padding:12px;font-size:.76rem;color:#374151;line-height:1.7;font-family:'Courier New',monospace">
-          <strong>CT HEAD</strong>
-
-<strong>TECHNIQUE:</strong> Helical axial sections with sagittal and coronal reformats without contrast.
-
-<strong>FINDINGS:</strong><span class="highlight" style="background:#dbeafe;padding:2px 4px;border-radius:3px"> No evidence of intracranial hemorrhage</span><span style="color:#94a3b8">|</span>
-        </div>
-        <div style="background:#fef9c3;border:1px solid #fde047;border-radius:6px;margin:8px 10px;padding:8px;font-size:.72rem;color:#713f12">
-          💡 Always use <strong>Medical Dictation</strong> model for radiology reports. The Conversation model misrecognises radiology terms.
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- SCREEN 12: Macros -->
-  <div class="screen" id="s12">
-    <div class="topbar"><span class="logo">Rad<span>genie</span></span><div class="topbar-right"><button class="nav-btn">US ▼</button></div></div>
-    <div class="macro-panel">
-      <div class="macro-header">
-        <div style="font-weight:700;font-size:.95rem;color:#1e293b">⚙️ My Macros — Text Shortcuts</div>
-      </div>
-      <div class="macro-form">
-        <div style="font-size:.78rem;font-weight:600;color:#1e3a5f;margin-bottom:8px">Add New Macro</div>
-        <div class="macro-form-row">
-          <select class="mock-select"><option>All Modalities</option><option>US</option><option>CT</option><option>MRI</option></select>
-          <input class="mock-input" placeholder="Macro trigger (e.g. nkidney)" value="nkidney"/>
-          <input class="mock-input" placeholder="Expansion text…" value="Normal kidneys bilaterally, no hydronephrosis…" style="flex:2"/>
-          <button class="add-btn">+ Add</button>
-        </div>
-      </div>
-      <div class="macro-list">
-        <div class="macro-item">
-          <span class="macro-trigger">nkidney</span>
-          <span class="macro-modality">US</span>
-          <span class="macro-text">Normal kidneys bilaterally, no hydronephrosis, no calculi, normal cortical thickness bilaterally.</span>
-          <button class="macro-del">Delete</button>
-        </div>
-        <div class="macro-item">
-          <span class="macro-trigger">nliver</span>
-          <span class="macro-modality">US</span>
-          <span class="macro-text">Liver normal in size and echogenicity. No focal lesion. Portal vein patent.</span>
-          <button class="macro-del">Delete</button>
-        </div>
-        <div class="macro-item">
-          <span class="macro-trigger">ctchest</span>
-          <span class="macro-modality">CT</span>
-          <span class="macro-text">No acute cardiopulmonary process identified. No consolidation, pleural effusion, or pneumothorax.</span>
-          <button class="macro-del">Delete</button>
-        </div>
-      </div>
-      <div class="macro-tip">💡 <strong>How to use:</strong> Type the macro trigger in the editor and press <strong>Space</strong> — it expands instantly. Macros are modality-specific and saved to your profile.</div>
-    </div>
-  </div>
-
-  <!-- SCREEN 13: Suggest AI -->
-  <div class="screen" id="s13">
-    <div class="topbar"><span class="logo">Rad<span>genie</span></span><div class="topbar-right"><button class="nav-btn">US ▼</button></div></div>
-    <div class="body-wrap">
-      <div class="sidebar">
-        <h4>US Templates</h4>
-        <div class="template-item active">US Abdomen ✓</div>
-        <div class="template-item">US Pelvis</div>
-        <div class="template-item">US Thyroid</div>
-      </div>
-      <div class="editor-area">
-        <div class="toolbar">
-          <button class="tb-btn ai-suggest highlight">💡 Suggest AI</button>
-          <button class="tb-btn ai-report">🤖 Report AI</button>
-          <button class="tb-btn ai-image">📷 Image AI</button>
-          <button class="tb-btn ai-deep">🔍 Deep Check AI</button>
-          <button class="tb-btn copy-count" style="margin-left:auto">📊 Copy & Count</button>
-        </div>
-        <div class="editor-content" style="max-height:120px"><strong>ULTRASOUND ABDOMEN</strong>
-Clinical: RUQ pain, elevated LFTs, female 34 years
-<span style="color:#94a3b8;font-style:italic">Findings being entered…</span></div>
-        <div class="ai-panel">
-          <div class="ai-panel-title">💡 Suggest AI — Template Recommendations</div>
-          <div class="ai-item info">
-            <div>📋 <strong>US Abdomen + Hepatobiliary</strong> — Best match for RUQ pain with liver function elevation. Includes full hepatobiliary and pancreas sections.<button class="ai-insert-btn">Load</button></div>
-          </div>
-          <div class="ai-item" style="border-left:3px solid #94a3b8">
-            <div>📋 <strong>US Abdomen (Standard)</strong> — General abdominal template. All organs covered.<button class="ai-insert-btn">Load</button></div>
-          </div>
-          <div class="ai-item" style="border-left:3px solid #94a3b8">
-            <div>📋 <strong>US Gallbladder Focused</strong> — Targeted template when gallbladder pathology is primary concern.<button class="ai-insert-btn">Load</button></div>
-          </div>
-          <div style="font-size:.68rem;color:#94a3b8;margin-top:6px">⚠️ Access subject to authorisation. All recommendations must be reviewed by the reporting radiologist.</div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- SCREEN 14: Report AI -->
-  <div class="screen" id="s14">
-    <div class="topbar"><span class="logo">Rad<span>genie</span></span><div class="topbar-right"><button class="nav-btn">CT ▼</button></div></div>
-    <div class="body-wrap">
-      <div class="sidebar">
-        <h4>CT Templates</h4>
-        <div class="template-item active">CT Head ✓</div>
-        <div class="template-item">CT Chest</div>
-      </div>
-      <div class="editor-area">
-        <div class="toolbar">
-          <button class="tb-btn ai-suggest">💡 Suggest AI</button>
-          <button class="tb-btn ai-report highlight">🤖 Report AI</button>
-          <button class="tb-btn ai-image">📷 Image AI</button>
-          <button class="tb-btn ai-deep">🔍 Deep Check AI</button>
-          <button class="tb-btn copy-count" style="margin-left:auto">📊 Copy & Count</button>
-        </div>
-        <div class="editor-content" style="max-height:80px;color:#64748b;font-style:italic;font-family:'Segoe UI',sans-serif">Raw findings entered:
-• No bleed
-• No mass effect
-• Ventricles normal
-• Calvarium intact
-• No midline shift</div>
-        <div class="ai-panel" style="max-height:220px">
-          <div class="ai-panel-title">🤖 Report AI — Generated Draft</div>
-          <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px;font-size:.76rem;line-height:1.8;font-family:'Courier New',monospace;color:#1e293b">
-<strong>CT HEAD WITHOUT CONTRAST</strong>
-
-<strong>TECHNIQUE:</strong> Helical axial sections with sagittal and coronal reformats were obtained without contrast. Iterative reconstruction employed.
-
-<strong>FINDINGS:</strong>
-No evidence of intracranial hemorrhage, mass effect, or midline shift. The ventricles and CSF spaces are normal in size and configuration. The calvarium is intact. No extra-axial collection identified.
-
-<strong>IMPRESSION:</strong>
-No acute intracranial abnormality detected on this non-contrast CT.
-          </div>
-          <div style="font-size:.68rem;color:#94a3b8;margin-top:8px">⚠️ Review, verify and finalise before submission. Access subject to authorisation.</div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- SCREEN 15: Image AI -->
-  <div class="screen" id="s15">
-    <div class="topbar"><span class="logo">Rad<span>genie</span></span><div class="topbar-right"><button class="nav-btn">XR ▼</button></div></div>
-    <div class="body-wrap">
-      <div class="sidebar">
-        <h4>XR Templates</h4>
-        <div class="template-item active">XR Chest ✓</div>
-        <div class="template-item">XR Abdomen</div>
-      </div>
-      <div class="editor-area">
-        <div class="toolbar">
-          <button class="tb-btn ai-suggest">💡 Suggest AI</button>
-          <button class="tb-btn ai-report">🤖 Report AI</button>
-          <button class="tb-btn ai-image highlight">📷 Image AI</button>
-          <button class="tb-btn ai-deep">🔍 Deep Check AI</button>
-          <button class="tb-btn copy-count" style="margin-left:auto">📊 Copy & Count</button>
-        </div>
-        <div class="ai-panel" style="max-height:260px">
-          <div class="ai-panel-title">📷 Image AI — Preliminary Observations</div>
-          <div class="ai-item warning">
-            <div>⚠️ <strong>Region of Interest — Right Lower Zone</strong><br>Increased opacity noted in the right lower zone. Findings consistent with possible consolidation or atelectasis. Recommend clinical correlation and comparison with prior imaging.<button class="ai-insert-btn">Insert</button></div>
-          </div>
-          <div class="ai-item info">
-            <div>ℹ️ <strong>Cardiac Silhouette</strong><br>Cardiothoracic ratio appears within normal limits. No obvious cardiomegaly detected.<button class="ai-insert-btn">Insert</button></div>
-          </div>
-          <div class="ai-item ok">
-            <div>✅ <strong>Costophrenic Angles</strong><br>Both costophrenic angles appear clear. No gross pleural effusion identified.</div>
-          </div>
-          <div style="font-size:.68rem;color:#94a3b8;margin-top:6px">⚠️ AI observations are preliminary only. Always verify independently before including in your report. Access subject to authorisation.</div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- SCREEN 16: Deep Check AI -->
-  <div class="screen" id="s16">
-    <div class="topbar"><span class="logo">Rad<span>genie</span></span><div class="topbar-right"><button class="nav-btn">US ▼</button></div></div>
-    <div class="body-wrap">
-      <div class="sidebar">
-        <h4>US Templates</h4>
-        <div class="template-item active">US Abdomen ✓</div>
-      </div>
-      <div class="editor-area">
-        <div class="toolbar">
-          <button class="tb-btn ai-suggest">💡 Suggest AI</button>
-          <button class="tb-btn ai-report">🤖 Report AI</button>
-          <button class="tb-btn ai-image">📷 Image AI</button>
-          <button class="tb-btn ai-deep highlight">🔍 Deep Check AI</button>
-          <button class="tb-btn copy-count" style="margin-left:auto">📊 Copy & Count</button>
-        </div>
-        <div class="editor-content" style="max-height:100px"><strong>ULTRASOUND ABDOMEN</strong>
-
-<strong>LIVER:</strong> Normal in size and echogenicity. No focal lesion.
-<strong>GALLBLADDER:</strong> Normal. No calculi.
-<strong>KIDNEYS:</strong> Normal bilaterally.
-<strong>IMPRESSION:</strong> Normal ultrasound examination.</div>
-        <div class="ai-panel" style="max-height:200px">
-          <div class="ai-panel-title">🔍 Deep Check AI — Final Review</div>
-          <div class="ai-item warning">
-            <div>⚠️ <strong>Missing Element — Portal Vein</strong><br>Portal vein patency is not documented. Standard abdominal US protocol requires this finding to be explicitly stated.<button class="ai-insert-btn">Insert</button></div>
-          </div>
-          <div class="ai-item warning">
-            <div>⚠️ <strong>Missing Element — Free Fluid</strong><br>Presence or absence of free fluid in the abdomen is not mentioned. This is required per departmental protocol.<button class="ai-insert-btn">Insert</button></div>
-          </div>
-          <div class="ai-item ok">
-            <div>✅ <strong>Impression Quality</strong><br>Impression is clear and concise. No inconsistency with findings section detected.</div>
-          </div>
-          <div class="ai-item info">
-            <div>💡 <strong>Completeness</strong><br>Spleen size and echogenicity not documented. Consider adding per your departmental protocol.<button class="ai-insert-btn">Insert</button></div>
-          </div>
-          <div style="font-size:.68rem;color:#94a3b8;margin-top:6px">⚠️ Access subject to authorisation. Review all flagged items before submission.</div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- SCREEN 17: Copy & Count -->
-  <div class="screen" id="s17">
-    <div class="topbar"><span class="logo">Rad<span>genie</span></span><div class="topbar-right"><button class="nav-btn">US ▼</button></div></div>
-    <div class="body-wrap">
-      <div class="sidebar">
-        <h4>Last 7 Days</h4>
-        <div style="font-size:1.4rem;font-weight:800;color:#1e3a5f;padding:8px 0">47</div>
-        <div style="display:flex;gap:4px;align-items:flex-end;height:50px">
-          <div style="width:14px;height:30px;background:#dbeafe;border-radius:2px 2px 0 0"></div>
-          <div style="width:14px;height:40px;background:#dbeafe;border-radius:2px 2px 0 0"></div>
-          <div style="width:14px;height:25px;background:#dbeafe;border-radius:2px 2px 0 0"></div>
-          <div style="width:14px;height:45px;background:#2563eb;border-radius:2px 2px 0 0"></div>
-          <div style="width:14px;height:35px;background:#93c5fd;border-radius:2px 2px 0 0"></div>
-          <div style="width:14px;height:50px;background:#93c5fd;border-radius:2px 2px 0 0"></div>
-          <div style="width:14px;height:38px;background:#dbeafe;border-radius:2px 2px 0 0"></div>
-        </div>
-        <div style="font-size:.65rem;color:#64748b;margin-top:4px">🔵 US 22 &nbsp;🟠 CT 14 &nbsp;🟣 MRI 8 &nbsp;⚪ XR 3</div>
-      </div>
-      <div class="editor-area">
-        <div class="toolbar">
-          <button class="tb-btn copy-count highlight">📊 Copy & Count</button>
-          <span style="font-size:.72rem;color:#64748b;margin-left:8px">Copies report + records submission + increments count</span>
-        </div>
-        <div class="copy-success">
-          ✅ Report copied to clipboard &nbsp;·&nbsp; Submission recorded &nbsp;·&nbsp; Count: <strong>48</strong> &nbsp;·&nbsp; Modality: US ✓
-        </div>
-        <div style="background:#fff;border:1px solid #e2e8f0;border-radius:6px;margin:8px;padding:12px;font-size:.76rem;color:#374151;line-height:1.7">
-          <strong>What Copy & Count does in one click:</strong><br>
-          📋 Copies your report text to clipboard — paste directly into PACS or RIS<br>
-          📊 Submits to Radgenie — your daily report count is incremented<br>
-          🔍 Detects modality from report content — flags any mismatch<br><br>
-          <strong style="color:#991b1b">Always use Copy & Count — not just Copy — to ensure your count is recorded correctly.</strong>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- SCREEN 18: My Stats -->
-  <div class="screen" id="s18">
-    <div class="topbar">
-      <span class="logo">Rad<span>genie</span></span>
-      <div class="topbar-right">
-        <button class="nav-btn highlight">📊 My Stats</button>
-        <button class="nav-btn">QA Board <span class="badge">3</span></button>
-        <button class="nav-btn">Peer Review <span class="badge orange">2</span></button>
-        <button class="nav-btn">Templates ▼</button>
-      </div>
-    </div>
-    <div class="stats-panel">
-      <div class="stats-header">
-        <div>
-          <div class="stats-title">Radiology — Performance Portfolio</div>
-          <div class="stats-sub">Dr. Sharma · Last 30 Days · Updated just now</div>
-        </div>
-        <button style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:6px;padding:5px 10px;font-size:.74rem;cursor:pointer">↺ Refresh</button>
-      </div>
-      <div class="kpi-grid">
-        <div class="kpi-card"><div class="kpi-icon">🎯</div><div class="kpi-val">96%</div><div class="kpi-label">QA Accuracy</div><div class="kpi-sub">Grade 0–1</div></div>
-        <div class="kpi-card"><div class="kpi-icon">🤝</div><div class="kpi-val">91%</div><div class="kpi-label">Peer Concordance</div><div class="kpi-sub">Agreement rate</div></div>
-        <div class="kpi-card"><div class="kpi-icon">✅</div><div class="kpi-val">100%</div><div class="kpi-label">QA Response Rate</div><div class="kpi-sub">Acknowledged</div></div>
-        <div class="kpi-card"><div class="kpi-icon">📋</div><div class="kpi-val">18</div><div class="kpi-label">Reviews Done</div><div class="kpi-sub">As reviewer</div></div>
-      </div>
-      <div class="tab-strip">
-        <div class="tab-pill active">📊 Peer Review</div>
-        <div class="tab-pill">🔍 QA Profile</div>
-        <div class="tab-pill">📁 My Reports</div>
-        <div class="tab-pill">🧠 Deep Analytics</div>
-      </div>
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px">
-        <div class="kpi-card"><div class="kpi-val" style="font-size:1.1rem">84</div><div class="kpi-label">Cases Reviewed</div></div>
-        <div class="kpi-card"><div class="kpi-val" style="font-size:1.1rem;color:#ef4444">4.8%</div><div class="kpi-label">Discrepancy Rate</div></div>
-        <div class="kpi-card"><div class="kpi-val" style="font-size:1.1rem">0.3</div><div class="kpi-label">Avg Score Received</div></div>
-      </div>
-      <div class="chart-placeholder">
-        <div class="mini-bar">
-          <div style="height:25px"></div><div style="height:35px"></div><div style="height:20px"></div><div style="height:40px;background:#2563eb"></div><div style="height:30px"></div><div style="height:45px;background:#93c5fd"></div>
-        </div>
-        📈 Score Trend — Monthly avg (Oct → Mar)
-      </div>
-    </div>
-  </div>
-
-  <!-- SCREEN 19: Deep Analytics -->
-  <div class="screen" id="s19">
-    <div class="topbar"><span class="logo">Rad<span>genie</span></span><div class="topbar-right"><button class="nav-btn highlight">📊 My Stats</button></div></div>
-    <div class="stats-panel">
-      <div class="stats-header"><div class="stats-title">🧠 Deep Analytics</div><div class="stats-sub">Dr. Sharma · Performance trends & outlook</div></div>
-      <div class="tab-strip">
-        <div class="tab-pill">📊 Peer Review</div>
-        <div class="tab-pill">🔍 QA Profile</div>
-        <div class="tab-pill">📁 My Reports</div>
-        <div class="tab-pill active">🧠 Deep Analytics</div>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-        <div class="chart-placeholder" style="flex-direction:column;gap:4px;height:80px">
-          <div style="font-size:.72rem;font-weight:600;color:#1e3a5f">📈 Score Trend</div>
-          <div class="mini-bar"><div style="height:20px"></div><div style="height:30px"></div><div style="height:25px"></div><div style="height:15px;background:#22c55e"></div><div style="height:12px;background:#22c55e"></div></div>
-        </div>
-        <div class="chart-placeholder" style="flex-direction:column;gap:4px;height:80px">
-          <div style="font-size:.72rem;font-weight:600;color:#1e3a5f">🔍 Error Patterns</div>
-          <div style="font-size:.72rem;color:#475569">Missed Finding 40% · Measurement 25% · Description 20%</div>
-        </div>
-        <div class="chart-placeholder" style="flex-direction:column;gap:4px;height:80px">
-          <div style="font-size:.72rem;font-weight:600;color:#1e3a5f">⚠️ Peer Discrepancy by Modality</div>
-          <div style="font-size:.72rem;color:#475569">CT 6% · MRI 4% · US 2% · XR 1%</div>
-        </div>
-        <div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:10px;height:80px;display:flex;flex-direction:column;justify-content:center">
-          <div style="font-size:.72rem;font-weight:700;color:#1e3a5f;margin-bottom:4px">📅 30/60/90 Day Outlook</div>
-          <div style="font-size:.72rem;color:#22c55e;font-weight:600">↗ Improving trajectory</div>
-          <div style="font-size:.68rem;color:#64748b">Based on last 6 months grade trend</div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- SCREEN 20: QA Board list -->
-  <div class="screen" id="s20">
-    <div class="topbar">
-      <span class="logo">Rad<span>genie</span></span>
-      <div class="topbar-right">
-        <button class="nav-btn">📊 My Stats</button>
-        <button class="nav-btn highlight">QA Board <span class="badge">3</span></button>
-        <button class="nav-btn">Peer Review <span class="badge orange">2</span></button>
-      </div>
-    </div>
-    <div class="qa-panel">
-      <div class="panel-title">🔍 Quality Assurance Board</div>
-      <div class="qa-case urgent">
-        <div><span class="qa-acc">ACC-2041 — CT Chest</span><span class="qa-score">Score 3/4</span></div>
-        <div class="qa-status">⚠️ Pending — Urgent</div>
-        <div class="qa-meta">Assigned by: HR Admin | Due: 30 Mar 2026</div>
-        <div class="qa-actions">
-          <button class="qa-act-btn agree">✅ Agree</button>
-          <button class="qa-act-btn dispute">❌ Dispute</button>
-          <button class="qa-act-btn respond">💬 Respond</button>
-        </div>
-      </div>
-      <div class="qa-case">
-        <div><span class="qa-acc">ACC-2038 — US Abdomen</span><span class="qa-score s2">Score 2/4</span></div>
-        <div class="qa-status" style="color:#f97316">Pending</div>
-        <div class="qa-meta">Assigned by: HR Admin | Due: 01 Apr 2026</div>
-        <div class="qa-actions">
-          <button class="qa-act-btn agree">✅ Agree</button>
-          <button class="qa-act-btn dispute">❌ Dispute</button>
-          <button class="qa-act-btn respond">💬 Respond</button>
-        </div>
-      </div>
-      <div class="qa-case done">
-        <div><span class="qa-acc">ACC-2035 — MRI Brain</span><span class="qa-score s4">Score 4/4</span></div>
-        <div class="qa-status done">✅ Completed</div>
-        <div class="qa-meta">Completed: 27 Mar 2026</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- SCREEN 21: QA Response Form -->
-  <div class="screen" id="s21">
-    <div class="topbar"><span class="logo">Rad<span>genie</span></span><div class="topbar-right"><button class="nav-btn highlight">QA Board <span class="badge">3</span></button></div></div>
-    <div class="form-panel">
-      <div class="panel-title">ACC-2041 · CT Chest · Dr. Sharma <span style="background:#fef9c3;color:#854d0e;border-radius:4px;padding:2px 8px;font-size:.72rem;font-weight:700;margin-left:8px">🟡 IN PROGRESS</span></div>
-      <div class="form-section">
-        <div class="form-section-title">📋 Section A — Case Details & Reviewer Finding</div>
-        <div class="form-detail-row"><span class="form-detail-label">Hospital:</span><span class="form-detail-val">City Hospital</span></div>
-        <div class="form-detail-row"><span class="form-detail-label">Modality:</span><span class="form-detail-val">CT</span></div>
-        <div class="form-detail-row"><span class="form-detail-label">Accession:</span><span class="form-detail-val">ACC-2041</span></div>
-        <div class="form-detail-row"><span class="form-detail-label">Due Date:</span><span class="form-detail-val" style="color:#ef4444;font-weight:700">30 Mar 2026 ⚠️</span></div>
-        <div class="finding-box">📋 <strong>Reviewer Finding:</strong><br>Report did not comment on the small right-sided pleural effusion seen on the basal cuts. This finding has potential clinical significance and should have been mentioned in both Findings and Impression.</div>
-      </div>
-      <div class="form-section">
-        <div class="form-section-title">✍️ Section B — Your Response</div>
-        <div class="stance-options">
-          <div class="stance-opt selected">✅ <strong>I Agree</strong> — Yes, I acknowledge the finding</div>
-          <div class="stance-opt">❌ <strong>I Disagree</strong> — The report is correct because…</div>
-          <div class="stance-opt">⚪ <strong>Non-Clinical</strong> — Transcription / IT / Admin error</div>
-        </div>
-        <div class="text-area-mock">I acknowledge the omission of the right-sided pleural effusion. On review, a small trace effusion is visible on the basal cuts. I will ensure complete review of all chest compartments in future reports.</div>
-        <div style="margin-top:8px;display:flex;gap:6px">
-          <button class="submit-btn">✅ Submit QA Response</button>
-          <button class="cancel-btn">Cancel</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- SCREEN 22: PR Scoring Scale -->
-  <div class="screen" id="s22">
-    <div class="topbar"><span class="logo">Rad<span>genie</span></span><div class="topbar-right"><button class="nav-btn highlight">Peer Review <span class="badge orange">2</span></button></div></div>
-    <div class="pr-score-panel">
-      <div class="panel-title">⭐ Peer Review Scoring — 0 to 4</div>
-      <div class="score-grid">
-        <div class="score-card s0"><div class="score-num">0</div><div class="score-label">No Error</div></div>
-        <div class="score-card s1"><div class="score-num">1</div><div class="score-label">Minor</div></div>
-        <div class="score-card s2"><div class="score-num">2</div><div class="score-label">Moderate</div></div>
-        <div class="score-card s3"><div class="score-num">3</div><div class="score-label">Significant</div></div>
-        <div class="score-card s4"><div class="score-num">4</div><div class="score-label">Critical</div></div>
-      </div>
-      <div style="font-size:.78rem;line-height:1.8;color:#374151;background:#fff;border-radius:8px;padding:12px;margin-bottom:10px;border:1px solid #e2e8f0">
-        <strong>0</strong> — No error. Report complete and accurate. Case closes automatically.<br>
-        <strong>1</strong> — Minor omission with no clinical impact. Simple agreement closes the case.<br>
-        <strong>2</strong> — Moderate missed finding with potential significance. Written response required.<br>
-        <strong>3</strong> — Significant error that could affect patient management. Full written response required.<br>
-        <strong>4</strong> — Critical diagnostic error. Serious patient safety implications. Mandatory escalation.
-      </div>
-      <div class="pr-rule">💡 <strong>Key rule:</strong> Score 0–1 closes with a simple agreement. Score 2 or above requires your written explanation. If you believe the reviewer's assessment is wrong, escalate to <strong>Adjudication</strong> for an HR binding decision.</div>
-    </div>
-  </div>
-
-  <!-- SCREEN 23: PR Board -->
-  <div class="screen" id="s23">
-    <div class="topbar"><span class="logo">Rad<span>genie</span></span><div class="topbar-right"><button class="nav-btn highlight">Peer Review <span class="badge orange">2</span></button></div></div>
-    <div class="pr-board">
-      <div class="panel-title">👥 Peer Review Board</div>
-      <div style="font-size:.78rem;color:#475569;margin-bottom:12px;line-height:1.6">Two directions: <strong>Assigned to Me</strong> — cases you must score as reviewer. <strong>My Reviews</strong> — reviewer feedback on your own reports requiring your response.</div>
-      <div style="display:flex;gap:6px;margin-bottom:14px">
-        <button style="background:#1e3a5f;color:#fff;border:none;border-radius:6px;padding:5px 14px;font-size:.76rem;cursor:pointer">📥 Assigned to Me</button>
-        <button style="background:#f1f5f9;color:#374151;border:1px solid #e2e8f0;border-radius:6px;padding:5px 14px;font-size:.76rem;cursor:pointer">📤 My Reviews</button>
-        <button style="background:#f1f5f9;color:#374151;border:1px solid #e2e8f0;border-radius:6px;padding:5px 14px;font-size:.76rem;cursor:pointer">📊 Analytics</button>
-        <button style="background:#f1f5f9;color:#374151;border:1px solid #e2e8f0;border-radius:6px;padding:5px 14px;font-size:.76rem;cursor:pointer">⚖️ Adjudication</button>
-      </div>
-      <div class="pr-case">
-        <div><span class="pr-case-acc">EXT-5021</span><span class="pr-type-badge reviewer">YOU REVIEW</span><span style="font-size:.75rem;color:#475569;margin-left:6px">CT — City Hospital</span></div>
-        <div class="pr-case-meta">Pending Your Review · First Reader: Dr. Lee · Due: 02 Apr 2026</div>
-        <button class="pr-case-btn">📝 Start Review</button>
-      </div>
-      <div class="pr-case">
-        <div><span class="pr-case-acc">ACC-2024-045</span><span class="pr-type-badge first-reader">YOUR RESPONSE</span><span style="font-size:.75rem;color:#475569;margin-left:6px">MRI Brain</span></div>
-        <div class="pr-case-meta">Awaiting Your Response · Reviewed by: Dr. Kapoor · Score: 2/4 · Due: 01 Apr 2026</div>
-        <button class="pr-case-btn respond">💬 Respond to Review</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- SCREEN 24: You are the reviewer -->
-  <div class="screen" id="s24">
-    <div class="topbar"><span class="logo">Rad<span>genie</span></span><div class="topbar-right"><button class="nav-btn">Peer Review <span class="badge orange">2</span></button></div></div>
-    <div class="pr-form">
-      <div class="panel-title">👁️ You Are the Reviewer — EXT-5021 · CT Chest · City Hospital</div>
-      <div style="font-size:.76rem;color:#475569;margin-bottom:10px">First Reader: Dr. Lee</div>
-      <div style="font-size:.78rem;font-weight:600;color:#1e3a5f;margin-bottom:6px">Original Report</div>
-      <div class="report-box">CT CHEST
-
-No consolidation or collapse. No pleural effusion documented. Heart size is normal. No mediastinal lymphadenopathy.
-
-IMPRESSION: Normal CT chest.</div>
-      <div style="font-size:.78rem;font-weight:600;color:#1e3a5f;margin-bottom:6px">Assign Score</div>
-      <div class="score-row">
-        <button class="score-opt">0 — No Error</button>
-        <button class="score-opt">1 — Minor</button>
-        <button class="score-opt selected">2 — Moderate ✓</button>
-        <button class="score-opt">3 — Significant</button>
-        <button class="score-opt">4 — Critical</button>
-      </div>
-      <div style="font-size:.78rem;font-weight:600;color:#1e3a5f;margin-bottom:6px">Your Reviewer Comments</div>
-      <div class="text-area-mock">A small right-sided pleural effusion is visible on the basal cuts which was not commented upon in the original report. While subtle, this finding warrants mention and clinical correlation.</div>
-      <div style="margin-top:10px;display:flex;gap:6px">
-        <button class="cancel-btn">Cancel</button>
-        <button class="submit-btn">📤 Submit Review</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- SCREEN 25: Respond to review (first reader) -->
-  <div class="screen" id="s25">
-    <div class="topbar"><span class="logo">Rad<span>genie</span></span><div class="topbar-right"><button class="nav-btn">Peer Review <span class="badge orange">2</span></button></div></div>
-    <div class="respond-form">
-      <div class="panel-title">💬 Respond to Peer Review — First Reader <span style="background:#fef9c3;color:#854d0e;border-radius:4px;padding:2px 8px;font-size:.72rem;margin-left:8px">⏳ Pending</span></div>
-      <div class="reviewer-finding">
-        <div style="font-size:.78rem;font-weight:700;color:#1e3a5f;margin-bottom:8px">👨‍⚕️ Reviewer's Assessment — Dr. Kapoor</div>
-        <div style="font-size:.76rem;color:#374151;margin-bottom:4px">Score: <span class="reviewer-finding score-badge">2/4 — Moderate</span> &nbsp; Category: Omission</div>
-        <div style="font-size:.76rem;color:#475569;line-height:1.7;margin-top:8px">The initial report did not mention the subtle T2 hyperintensity in the periventricular white matter, which may represent early demyelinating change. This finding should have been flagged for clinical correlation.</div>
-      </div>
-      <div style="font-size:.78rem;font-weight:600;color:#1e3a5f;margin-bottom:8px">Your Response</div>
-      <div class="response-opts">
-        <button class="resp-btn agree">✅ Agree with reviewer</button>
-        <button class="resp-btn disagree">❌ Disagree with reviewer</button>
-      </div>
-      <div class="text-area-mock" style="min-height:50px">Your written explanation here…</div>
-      <button class="adjudication-btn">🚨 Raise for Adjudication — Send to HR for Final Decision</button>
-      <div style="margin-top:8px;display:flex;gap:6px">
-        <button class="cancel-btn">Cancel</button>
-        <button class="submit-btn">✅ Submit Response</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- SCREEN 26: My Schedule -->
-  <div class="screen" id="s26">
-    <div class="topbar"><span class="logo">Rad<span>genie</span></span><div class="topbar-right"><button class="nav-btn highlight">📅 Events ▼</button></div></div>
-    <div class="schedule-panel">
-      <div class="schedule-header">
-        <div class="schedule-month">📅 My Schedule — June 2026</div>
-        <div><button class="sched-nav">◀ Prev</button> &nbsp; <button class="sched-nav">Next ▶</button></div>
-      </div>
-      <table class="sched-table">
-        <thead><tr><th>Date</th><th>Shift</th><th>Hospital</th><th>Modality</th></tr></thead>
-        <tbody>
-          <tr><td>Mon 09</td><td><span class="shift-chip shift-morning">Morning</span></td><td>City Hospital</td><td>US / CT</td></tr>
-          <tr><td>Tue 10</td><td><span class="shift-chip shift-off">Off</span></td><td>—</td><td>—</td></tr>
-          <tr><td>Wed 11</td><td><span class="shift-chip shift-afternoon">Afternoon</span></td><td>Metro Scan</td><td>MRI</td></tr>
-          <tr><td>Thu 12</td><td><span class="shift-chip shift-morning">Morning</span></td><td>City Hospital</td><td>US</td></tr>
-          <tr><td>Fri 13</td><td><span class="shift-chip shift-night">Night</span></td><td>City Hospital</td><td>CT / XR</td></tr>
-          <tr><td>Sat 14</td><td><span class="shift-chip shift-off">Off</span></td><td>—</td><td>—</td></tr>
-        </tbody>
-      </table>
-      <div style="font-size:.74rem;color:#64748b;margin-top:10px;background:#fff;border-radius:6px;padding:8px;border:1px solid #e2e8f0">📋 This is a read-only view. Contact your coordinator or HR for any schedule changes or cancellation requests.</div>
-    </div>
-  </div>
-
-  <!-- SCREEN 27: Tools menu -->
-  <div class="screen" id="s27">
-    <div class="topbar">
-      <span class="logo">Rad<span>genie</span></span>
-      <div class="topbar-right">
-        <button class="tools-btn highlight">🔧 Tools ▼</button>
-        <button class="tools-btn">✨ What's New <span class="whatsnew-dot"></span></button>
-        <button class="tools-btn">Logout</button>
-      </div>
-    </div>
-    <div style="flex:1;background:#f1f5f9;position:relative;padding:10px">
-      <div class="tools-dropdown" style="position:relative;top:0;right:0;width:100%;max-width:320px;margin:0 auto">
-        <div style="font-size:.8rem;font-weight:700;color:#1e3a5f;padding:6px 10px;border-bottom:1px solid #f1f5f9;margin-bottom:4px">🔧 Tools Menu</div>
-        <div class="tool-item"><span class="tool-item-icon">🌙</span><div><div>Dark Theme</div><div class="tool-item-desc">Switch between light and dark mode for comfortable night reporting</div></div></div>
-        <div class="tool-item"><span class="tool-item-icon">🔍</span><div><div>Advanced Search</div><div class="tool-item-desc">Search across all your peer review and QA records by accession, date, modality</div></div></div>
-        <div class="tool-item"><span class="tool-item-icon">🎫</span><div><div>Report Issue</div><div class="tool-item-desc">Submit a support ticket to the admin team for IT or system issues</div></div></div>
-        <div class="tool-item"><span class="tool-item-icon">📋</span><div><div>My Tickets <span style="background:#ef4444;color:#fff;border-radius:99px;font-size:.65rem;padding:1px 6px;margin-left:4px">2</span></div><div class="tool-item-desc">Track status of all your submitted support requests</div></div></div>
-        <div class="tool-item"><span class="tool-item-icon">📁</span><div><div>My Files</div><div class="tool-item-desc">Access your saved report files and attachments</div></div></div>
-        <div class="tool-item"><span class="tool-item-icon">📌</span><div><div>Notes Board</div><div class="tool-item-desc">Shared team noticeboard — announcements and coordinator updates</div></div></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- SCREEN 28: Tour Complete -->
-  <div class="screen" id="s28">
-    <div class="complete-screen">
-      <div style="font-size:2.5rem">🎉</div>
-      <div class="complete-title">Tour Complete!</div>
-      <div class="complete-sub">You have seen everything available to you in Radgenie. Your daily workflow in three steps — load a template, write and review using the AI tools, and submit using Copy & Count. Check your QA Board and Peer Review Board every day.</div>
-      <div class="complete-chips">
-        <span class="complete-chip">📝 Load a template</span>
-        <span class="complete-chip">🔍 Check QA Board</span>
-        <span class="complete-chip">📅 View Schedule</span>
-        <span class="complete-chip">⚙️ Set up Macros</span>
-        <span class="complete-chip">🧠 Deep Analytics</span>
-      </div>
-      <div class="restart-hint">Press Restart to watch again</div>
-    </div>
-  </div>
-
-</div><!-- /viewport -->
+</div>
 
 <script>
-const STEPS = [
-  { screen:'s1',  dur:4000, text:'Welcome to Radgenie — your complete radiology reporting and workflow platform. This tour walks you through everything available to you as a radiologist. Let\'s begin.' },
-  { screen:'s2',  dur:5000, text:'Enter your Employee Code to access the system. Your code is assigned by admin. Once authenticated, Radgenie loads your personalised dashboard based on your role and permissions.' },
-  { screen:'s3',  dur:6000, text:'At the top you have your main navigation — My Stats for your performance portfolio, QA Board for quality assessments, Peer Review for external case reviews, Templates to switch modalities, and Events for your schedule.' },
-  { screen:'s4',  dur:6000, text:'The red badge on QA Board shows how many quality assessments are pending your response. These require you to Agree, Dispute, or Respond before the due date. Overdue cases trigger an urgent alert — never ignore this badge.' },
-  { screen:'s5',  dur:6000, text:'The orange badge on Peer Review shows pending items — either reports assigned to you for scoring, or reviewer feedback on your own reports requiring your response. Missing these deadlines affects your compliance score in My Stats.' },
-  { screen:'s6',  dur:6000, text:'This is the reporting editor — where you spend most of your time. Institution, Accession Number, modality, the full toolbar with all four AI tools, Copy & Count, Save, Load, Format, Clear — everything is here.' },
-  { screen:'s7',  dur:6000, text:'Before writing your report, always select the Institution and enter the Accession Number. These two fields are mandatory. The system will block Copy & Count if either is missing.' },
-  { screen:'s8',  dur:6000, text:'Select the patient gender — used by AI tools to contextualise findings correctly. And select the study modality — this filters your template library and enables modality-mismatch detection before submission.' },
-  { screen:'s9',  dur:6500, text:'Use the search bar to find any template instantly. Type the study name — for example CT head — and matching results appear with page navigation. You can also press Ctrl+K from anywhere on the page to jump straight to search.' },
-  { screen:'s10', dur:6000, text:'Inside the editor, type two forward slashes followed by the procedure name — for example slash slash CT head — and a live dropdown appears with matching templates. Arrow keys to navigate, Enter to load. The fastest way to pull a template without leaving the editor.' },
-  { screen:'s11', dur:7000, text:'Click the microphone to activate voice dictation. Radgenie uses a medical dictation model trained for radiology — terms like helical axial, hydronephrosis, and periventricular are recognised accurately. Say "colon" and it types a colon. Always use Medical Dictation mode, not Conversation mode.' },
-  { screen:'s12', dur:7000, text:'Macros are personal text shortcuts. Define a trigger word and its expansion — for example nkidney expands to your full normal kidney finding. Press Space after typing the trigger and it expands instantly. Set up macros for your most repeated phrases to save significant time every day.' },
-  { screen:'s13', dur:7000, text:'Suggest AI reads your case inputs — modality, clinical history, and findings entered — and recommends the most relevant report templates before you start writing. Click, review the recommendations, select the best fit, and load it as your starting structure. Access is subject to your authorisation profile.' },
-  { screen:'s14', dur:7000, text:'Report AI generates a fully structured radiology report from your raw input — bullets, shorthand, or dictated notes. Click Report AI, review the generated draft, make your edits, and finalise. It is a structured starting point that cuts drafting time significantly. Access subject to authorisation.' },
-  { screen:'s15', dur:7000, text:'Image AI analyses the study images you attach to the current case. It highlights regions of interest, flags potential anomalies, and provides preliminary observations to support your read. Always verify AI observations independently before including them in your report. Access subject to authorisation.' },
-  { screen:'s16', dur:7000, text:'Deep Check AI performs a final review of your completed report. It checks for clinical inconsistencies, missing mandatory elements, terminology errors, and impression alignment with findings. Complete your report, click Deep Check, review flagged items, correct as needed, then submit with confidence. Access subject to authorisation.' },
-  { screen:'s17', dur:7000, text:'Copy and Count is the final step of every report. One click copies your report to the clipboard for pasting into PACS or RIS, submits to Radgenie incrementing your daily count, and checks for modality mismatch. Always use Copy and Count — not just Copy — to ensure your submission is recorded correctly.' },
-  { screen:'s18', dur:6500, text:'My Stats is your personal performance portfolio. QA Accuracy based on your grade history. Peer Concordance — your agreement rate with reviewers. QA Response Rate — how consistently you respond to assessments. And Reviews Done — how many cases you have reviewed as a peer reviewer.' },
-  { screen:'s19', dur:6500, text:'Deep Analytics gives you a deeper view. Score trend over time, error pattern breakdown by category, peer discrepancy by modality, and a 30-60-90 day performance outlook based on your recent trajectory. Use this to identify areas of strength and areas needing attention before they become a QA issue.' },
-  { screen:'s20', dur:6000, text:'The QA Board shows all quality assessments assigned to you. Each case shows the accession, study type, QA score, due date, and status. For each pending case you can Agree, Dispute, or Respond with a written explanation. Cases approaching their due date are flagged urgent.' },
-  { screen:'s21', dur:7000, text:'When you open a QA case you see the full reviewer finding — what was flagged and why. Section B is where you submit your response. Choose your stance — Agree, Disagree, or Non-Clinical — and provide your clinical explanation. Submit before the due date to maintain your response rate.' },
-  { screen:'s22', dur:7000, text:'Radgenie uses a zero to four scoring scale for peer review. Zero means no error. One is a minor issue with no clinical impact. Two is a moderate missed finding. Three is a significant error affecting patient management. Four is a critical error with serious patient safety implications. Score two and above requires a written explanation.' },
-  { screen:'s23', dur:6500, text:'The Peer Review Board has two sections. Assigned to Me — cases where you are the reviewer and must score an external report. My Reviews — cases where a reviewer has scored your own report and you need to respond. Both have due dates. If you believe a score is wrong, escalate to Adjudication for an HR binding decision.' },
-  { screen:'s24', dur:6500, text:'When reviewing an external case, you read the original report, assign a score on the zero to four scale, and write your reviewer comments explaining your assessment. Be specific about the finding — your comments guide the first reader\'s response and may go to adjudication.' },
-  { screen:'s25', dur:6500, text:'When responding to a reviewer\'s score on your own report, you see their full finding and score. Choose Agree or Disagree, write your clinical explanation, and submit. If you believe the review is unjust, click Raise for Adjudication — HR reviews both sides and issues a final binding decision.' },
-  { screen:'s26', dur:5500, text:'Under Events, click My Schedule to view your assigned shifts for the current month — shift timings, hospitals, and modalities. This is a read-only view. Contact your coordinator or HR for any schedule changes or cancellation requests.' },
-  { screen:'s27', dur:6500, text:'The Tools menu gives you Dark Theme for comfortable night reporting, Advanced Search to search across your peer review and QA records, Report Issue to submit support tickets, My Tickets to track them, My Files for saved attachments, and Notes Board for team announcements.' },
-  { screen:'s28', dur:8000, text:'That covers everything in Radgenie. Your daily workflow — load a template using search or the slash slash shortcut, write and review using the AI tools, submit using Copy and Count. Check your QA Board and Peer Review Board every day. Use Deep Analytics to stay ahead of your performance trends. Welcome to Radgenie.' },
-];
+/* ============================================================
+   MOCKUPS — stylized SVG recreations of the RadGenie screens.
+   Coordinates are in a 1600x1000 viewBox; highlight regions in the
+   step data use the same coordinate space so the spotlight lines up.
+   ============================================================ */
 
-let currentStep = -1;
-let timer = null;
-let playing = false;
-let speed = 1.0;
-let elapsed = 0;
-let stepStart = 0;
-let rafId = null;
+const MOCK_RAD = `
+<svg viewBox="0 0 1600 1000" xmlns="http://www.w3.org/2000/svg" font-family="Inter,sans-serif">
+  <rect width="1600" height="1000" fill="#f3f4f8"/>
 
-function showScreen(id) {
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  const el = document.getElementById(id);
-  if (el) el.classList.add('active');
+  <!-- purple welcome header -->
+  <rect x="0" y="0" width="1600" height="74" fill="#4c3a8f"/>
+  <text x="28" y="46" fill="#fff" font-size="26" font-weight="700" font-family="'Space Grotesk'">Welcome, test emp (TEST03)</text>
+  <g>
+    <rect x="1230" y="22" width="96" height="32" rx="7" fill="#6d28d9"/><text x="1278" y="43" fill="#fff" font-size="13" text-anchor="middle">🔧 Tools ▾</text>
+    <rect x="1334" y="22" width="120" height="32" rx="7" fill="#16a34a"/><text x="1394" y="43" fill="#fff" font-size="13" text-anchor="middle">✦ What's New</text>
+    <rect x="1462" y="22" width="84" height="32" rx="7" fill="#dc2626"/><text x="1504" y="43" fill="#fff" font-size="13" text-anchor="middle">Logout</text>
+    <rect x="1486" y="10" width="64" height="22" rx="11" fill="#16a34a"/><text x="1518" y="25" fill="#fff" font-size="11" text-anchor="middle">● Online</text>
+  </g>
+
+  <!-- blue toolbar -->
+  <rect x="0" y="74" width="1600" height="64" fill="#234063"/>
+  <circle cx="36" cy="106" r="18" fill="#dc2626"/><text x="36" y="112" fill="#fff" font-size="15" text-anchor="middle">🎙</text>
+  <text x="64" y="111" fill="#fff" font-size="15" font-weight="600">Voice Ready</text>
+  <circle cx="196" cy="106" r="15" fill="#9333ea"/><text x="196" y="111" fill="#fff" font-size="13" text-anchor="middle">?</text>
+  <g font-size="13">
+    <rect x="228" y="88" width="104" height="36" rx="8" fill="#2f6fed"/><text x="280" y="111" fill="#fff" text-anchor="middle">📊 My Stats</text>
+    <rect x="344" y="88" width="104" height="36" rx="8" fill="#2f6fed"/><text x="396" y="111" fill="#fff" text-anchor="middle">QA Board</text>
+    <rect x="460" y="88" width="168" height="36" rx="8" fill="#2f6fed" stroke="#7dd3fc" stroke-width="2"/><text x="500" y="111" fill="#fff">⚡ Use AI Report</text><rect x="586" y="95" width="34" height="22" rx="11" fill="#16a34a"/><text x="603" y="110" fill="#fff" font-size="10" text-anchor="middle">ON</text>
+    <rect x="640" y="88" width="116" height="36" rx="8" fill="#2f6fed"/><text x="698" y="111" fill="#fff" text-anchor="middle">Peer Review</text>
+    <rect x="768" y="88" width="148" height="36" rx="8" fill="#2f6fed"/><text x="784" y="111" fill="#fff">CT</text><text x="900" y="111" fill="#fff">▾</text>
+    <rect x="958" y="88" width="92" height="36" rx="8" fill="#16a34a"/><text x="1004" y="111" fill="#fff" text-anchor="middle">📅 Events</text>
+    <text x="1066" y="111" fill="#cbd5e1">Gender:</text>
+    <rect x="1134" y="88" width="70" height="36" rx="8" fill="#2f6fed"/><text x="1169" y="111" fill="#fff" text-anchor="middle">♂ Male</text>
+    <rect x="1210" y="88" width="86" height="36" rx="8" fill="#94a3b8"/><text x="1253" y="111" fill="#fff" text-anchor="middle">♀ Female</text>
+  </g>
+
+  <!-- AI disclaimer bar -->
+  <rect x="0" y="138" width="1600" height="34" fill="#fde68a"/>
+  <text x="28" y="160" fill="#92400e" font-size="12">⚠️ AI-Assisted Report: review, verify and approve before clinical use. Final responsibility rests with the reporting radiologist.</text>
+  <rect x="1486" y="145" width="84" height="20" rx="5" fill="#d97706"/><text x="1528" y="159" fill="#fff" font-size="11" text-anchor="middle">Turn Off AI</text>
+
+  <!-- LEFT RAIL: search + templates -->
+  <rect x="28" y="196" width="280" height="780" rx="12" fill="#ffffff" stroke="#e2e8f0"/>
+  <rect x="48" y="220" width="240" height="44" rx="9" fill="#fff" stroke="#2f6fed" stroke-width="2"/><text x="64" y="247" fill="#94a3b8" font-size="13">🔍 Search templates… (Ctrl+K)</text>
+  <text x="48" y="298" fill="#0f172a" font-size="15" font-weight="700">Recent Templates</text>
+  <line x1="48" y1="310" x2="288" y2="310" stroke="#e2e8f0"/>
+  <text x="48" y="342" fill="#334155" font-size="14">US Abdomen</text>
+  <line x1="48" y1="358" x2="288" y2="358" stroke="#f1f5f9"/>
+  <text x="48" y="386" fill="#334155" font-size="14">US Pelvis</text>
+  <text x="48" y="436" fill="#0f172a" font-size="15" font-weight="700">CT Templates</text>
+  <line x1="48" y1="448" x2="288" y2="448" stroke="#e2e8f0"/>
+  <g font-size="14" fill="#fff">
+    <rect x="48" y="464" width="240" height="40" rx="8" fill="#2f6fed"/><text x="64" y="489">Head</text><text x="270" y="489" text-anchor="end">▶</text>
+    <rect x="48" y="512" width="240" height="40" rx="8" fill="#2f6fed"/><text x="64" y="537">Chest</text><text x="270" y="537" text-anchor="end">▶</text>
+    <rect x="48" y="560" width="240" height="40" rx="8" fill="#2f6fed"/><text x="64" y="585">Angio</text><text x="270" y="585" text-anchor="end">▶</text>
+    <rect x="48" y="608" width="240" height="40" rx="8" fill="#2f6fed"/><text x="64" y="633">Spine</text><text x="270" y="633" text-anchor="end">▶</text>
+    <rect x="48" y="656" width="240" height="40" rx="8" fill="#2f6fed"/><text x="64" y="681">Pelvis</text><text x="270" y="681" text-anchor="end">▶</text>
+    <rect x="48" y="704" width="240" height="40" rx="8" fill="#2f6fed"/><text x="64" y="729">Face</text><text x="270" y="729" text-anchor="end">▶</text>
+    <rect x="48" y="752" width="240" height="40" rx="8" fill="#2f6fed"/><text x="64" y="777">MSK Extremity</text><text x="270" y="777" text-anchor="end">▶</text>
+  </g>
+
+  <!-- CENTER: AI tools row + actions + editor -->
+  <rect x="328" y="196" width="900" height="780" rx="12" fill="#ffffff" stroke="#e2e8f0"/>
+  <!-- AI tools -->
+  <rect x="348" y="214" width="860" height="44" rx="9" fill="#f5f0ff"/>
+  <text x="368" y="241" fill="#6d28d9" font-size="13" font-weight="700">🤖 AI TOOLS</text>
+  <g font-size="13" fill="#fff">
+    <rect x="452" y="222" width="100" height="28" rx="14" fill="#9333ea"/><text x="502" y="241" text-anchor="middle">💡 Suggest AI</text>
+    <rect x="562" y="222" width="96" height="28" rx="14" fill="#a855f7"/><text x="610" y="241" text-anchor="middle">✦ Report AI</text>
+    <rect x="668" y="222" width="92" height="28" rx="14" fill="#7c3aed"/><text x="714" y="241" text-anchor="middle">🖼 Image AI</text>
+    <rect x="770" y="222" width="106" height="28" rx="14" fill="#059669"/><text x="823" y="241" text-anchor="middle">● Deep Check</text>
+  </g>
+  <!-- action row -->
+  <g font-size="14">
+    <rect x="348" y="290" width="98" height="40" rx="8" fill="#16a34a"/><text x="397" y="315" fill="#fff" text-anchor="middle">📋 Copy</text>
+    <rect x="456" y="290" width="56" height="40" rx="8" fill="#fff" stroke="#cbd5e1"/><text x="478" y="315" fill="#334155">1 ▾</text>
+    <rect x="522" y="290" width="168" height="40" rx="8" fill="#16a34a"/><text x="606" y="315" fill="#fff" text-anchor="middle">📋 Copy &amp; Count</text>
+    <rect x="700" y="290" width="172" height="40" rx="8" fill="#fff" stroke="#f9a8d4" stroke-width="2"/><text x="786" y="315" fill="#9d174d" text-anchor="middle">🤝 Live Peer Review</text>
+    <rect x="882" y="290" width="190" height="40" rx="8" fill="#fff" stroke="#cbd5e1"/><text x="900" y="315" fill="#475569" font-size="13">Select Institution (req.)▾</text>
+    <rect x="1082" y="290" width="126" height="40" rx="8" fill="#fff" stroke="#cbd5e1"/><text x="1098" y="315" fill="#94a3b8" font-size="12">Accession (req.)</text>
+  </g>
+  <!-- second action row -->
+  <g font-size="14">
+    <circle cx="372" cy="364" r="20" fill="#2563eb"/><text x="372" y="370" fill="#fff" font-size="16" text-anchor="middle">📋</text>
+    <rect x="404" y="344" width="100" height="40" rx="8" fill="#16a34a"/><text x="454" y="369" fill="#fff" text-anchor="middle">📄 Format</text>
+    <rect x="514" y="344" width="100" height="40" rx="8" fill="#16a34a"/><text x="564" y="369" fill="#fff" text-anchor="middle">⚙ Macros</text>
+    <rect x="624" y="344" width="92" height="40" rx="8" fill="#16a34a"/><text x="670" y="369" fill="#fff" text-anchor="middle">🗑 Clear</text>
+  </g>
+  <!-- formatting toolbar -->
+  <rect x="348" y="400" width="860" height="40" rx="8" fill="#f8fafc" stroke="#eef2f7"/>
+  <g font-size="13" fill="#475569">
+    <text x="372" y="425">Courier New ▾</text><text x="488" y="425">14px ▾</text>
+    <text x="556" y="425" font-weight="700">B</text><text x="590" y="425" font-style="italic">I</text><text x="622" y="425" text-decoration="underline">U</text>
+    <text x="828" y="425">• List</text><text x="884" y="425">1. List</text>
+  </g>
+  <!-- editor body -->
+  <rect x="348" y="452" width="860" height="504" rx="8" fill="#ffffff" stroke="#e2e8f0"/>
+  <text x="372" y="486" fill="#1e293b" font-size="15" font-weight="600">CT HEAD — PLAIN</text>
+  <text x="372" y="514" fill="#475569" font-size="14">TECHNIQUE: Axial sections of the brain.</text>
+  <text x="372" y="540" fill="#475569" font-size="14">FINDINGS:</text>
+  <text x="372" y="566" fill="#475569" font-size="14">No acute intracranial haemorrhage or infarct.</text>
+  <text x="372" y="592" fill="#475569" font-size="14">Ventricles normal. Grey-white differentiation</text>
+  <text x="372" y="618" fill="#475569" font-size="14">preserved.</text>
+  <text x="372" y="650" fill="#2563eb" font-size="14" font-weight="600">//normalhead</text><text x="470" y="650" fill="#94a3b8" font-size="13"> ← type a shortcut to expand a template</text>
+
+  <!-- RIGHT: Last 7 Days purple panel + chat -->
+  <rect x="1248" y="196" width="324" height="780" rx="14" fill="#5b4bbf"/>
+  <text x="1272" y="240" fill="#fff" font-size="16" font-weight="700">📊 Last 7 Days</text>
+  <circle cx="1548" cy="232" r="13" fill="#6d5dd0"/><text x="1548" y="237" fill="#fff" font-size="12" text-anchor="middle">0</text>
+
+  <!-- chat popover overlapping -->
+  <rect x="1300" y="270" width="268" height="180" rx="12" fill="#ffffff" stroke="#e2e8f0"/>
+  <text x="1320" y="300" fill="#0f172a" font-size="14" font-weight="700">💬 RadGenie Chat</text><text x="1548" y="300" fill="#94a3b8" font-size="13" text-anchor="end">✕</text>
+  <rect x="1320" y="312" width="228" height="32" rx="7" fill="#f8fafc" stroke="#e2e8f0"/><text x="1334" y="333" fill="#94a3b8" font-size="12">🔍 Search users…</text>
+  <text x="1320" y="372" fill="#334155" font-size="13">HR/Admin</text><text x="1548" y="372" fill="#16a34a" font-size="11" text-anchor="end">1 online ▾</text>
+  <line x1="1320" y1="386" x2="1548" y2="386" stroke="#f1f5f9"/>
+  <text x="1320" y="412" fill="#334155" font-size="13">Coordinators</text><text x="1548" y="412" fill="#16a34a" font-size="11" text-anchor="end">1 online ▾</text>
+
+  <!-- 7-day metric cards -->
+  <g font-size="14" font-weight="600">
+    <rect x="1272" y="478" width="276" height="52" rx="10" fill="#6d5dd0"/><text x="1292" y="510" fill="#fff">📋 QA Tasks</text><circle cx="1524" cy="504" r="13" fill="#4c3a8f"/><text x="1524" y="509" fill="#fff" font-size="12" text-anchor="middle">0</text>
+    <rect x="1272" y="540" width="276" height="52" rx="10" fill="#6d5dd0"/><text x="1292" y="572" fill="#fff">🔍 Peer Reviews</text><circle cx="1524" cy="566" r="13" fill="#4c3a8f"/><text x="1524" y="571" fill="#fff" font-size="12" text-anchor="middle">0</text>
+    <rect x="1272" y="602" width="276" height="52" rx="10" fill="#6d5dd0"/><text x="1292" y="634" fill="#fff">💬 PR Feedback</text><circle cx="1524" cy="628" r="13" fill="#4c3a8f"/><text x="1524" y="633" fill="#fff" font-size="12" text-anchor="middle">0</text>
+    <rect x="1272" y="664" width="276" height="52" rx="10" fill="#6d5dd0"/><text x="1292" y="696" fill="#fff">📄 Reports Today</text><circle cx="1524" cy="690" r="13" fill="#4c3a8f"/><text x="1524" y="695" fill="#fff" font-size="12" text-anchor="middle">0</text>
+  </g>
+</svg>`;
+
+const MOCK_COORD = `
+<svg viewBox="0 0 1600 1000" xmlns="http://www.w3.org/2000/svg" font-family="Inter,sans-serif">
+  <rect width="1600" height="1000" fill="#f3f4f8"/>
+  <!-- image viewer (left) -->
+  <rect x="28" y="40" width="900" height="920" rx="12" fill="#0f172a" stroke="#1e293b"/>
+  <rect x="28" y="40" width="900" height="44" rx="12" fill="#1e293b"/>
+  <text x="52" y="68" fill="#cbd5e1" font-size="14" font-weight="600">Image Viewer — CT Head</text>
+  <circle cx="470" cy="520" r="250" fill="#020617"/>
+  <ellipse cx="470" cy="520" rx="200" ry="230" fill="#1e293b"/>
+  <ellipse cx="430" cy="470" rx="60" ry="80" fill="#334155"/>
+  <ellipse cx="540" cy="500" rx="50" ry="70" fill="#334155"/>
+  <ellipse cx="470" cy="620" rx="90" ry="60" fill="#283548"/>
+  <text x="60" y="930" fill="#64748b" font-size="13">Series 3/8 · Axial · W 80 L 40</text>
+
+  <!-- rad's chat panel (right) -->
+  <rect x="956" y="40" width="616" height="920" rx="12" fill="#ffffff" stroke="#e2e8f0"/>
+  <rect x="956" y="40" width="616" height="48" rx="12" fill="#234063"/>
+  <circle cx="984" cy="64" r="6" fill="#22c55e"/>
+  <text x="1000" y="69" fill="#fff" font-size="15" font-weight="600">RadGenie Chat · Coordinators</text>
+
+  <!-- incoming case message with details prefilled -->
+  <rect x="984" y="120" width="420" height="150" rx="11" fill="#f1f5f9"/>
+  <text x="1008" y="150" fill="#0f172a" font-size="14" font-weight="700">New case for you</text>
+  <g font-size="13" fill="#475569">
+    <text x="1008" y="178">Patient: Louis Jacques</text>
+    <text x="1008" y="202">Accession: ER116318</text>
+    <text x="1008" y="226">Modality: CT · Template: CT Head Plain</text>
+  </g>
+  <!-- load / reject buttons -->
+  <rect x="1008" y="300" width="200" height="44" rx="9" fill="#166534"/><text x="1108" y="328" fill="#fff" font-size="15" font-weight="700" text-anchor="middle">▶ Load Case</text>
+  <rect x="1224" y="300" width="150" height="44" rx="9" fill="#fff" stroke="#dc2626"/><text x="1299" y="328" fill="#dc2626" font-size="15" font-weight="700" text-anchor="middle">✕ Reject</text>
+
+  <!-- after load: editor-ready hint -->
+  <rect x="984" y="392" width="560" height="120" rx="11" fill="#ecfdf5" stroke="#bbf7d0"/>
+  <text x="1008" y="424" fill="#047857" font-size="14" font-weight="700">✓ Loaded into your editor</text>
+  <text x="1008" y="452" fill="#065f46" font-size="13">Accession, institution, modality &amp; patient</text>
+  <text x="1008" y="474" fill="#065f46" font-size="13">name are filled — start reporting.</text>
+
+  <!-- finish -->
+  <rect x="984" y="560" width="280" height="44" rx="9" fill="#16a34a"/><text x="1124" y="588" fill="#fff" font-size="15" font-weight="700" text-anchor="middle">📋 Copy &amp; Count</text>
+  <text x="1008" y="636" fill="#94a3b8" font-size="13">Counts and submits your finished report.</text>
+</svg>`;
+
+/* ============================================================
+   STEP DATA
+   region = {x,y,w,h} in the 1600x1000 viewBox (null = no spotlight)
+   label  = small tag pinned near the highlight
+   tag    = optional amber footnote
+   ============================================================ */
+
+const TOURS = {
+  1: { mock: MOCK_RAD, slot:'slot-1', steps: [
+    { chip:'Login', title:'Sign in to RadGenie',
+      body:'Open RadGenie and sign in with your employee code and password. Each person gets <strong>one active session</strong> — signing in elsewhere logs the first device out, keeping your work secure.',
+      region:null },
+    { chip:'Modality', title:'Select your modality',
+      body:'Pick the study\'s modality from the toolbar dropdown — here it\'s set to <strong>CT</strong>. This loads the matching template set on the left and prepares the editor for that exam type.',
+      region:{x:768,y:88,w:148,h:36}, label:'Modality' },
+    { chip:'Last 7 Days', title:'Your live stats panel',
+      body:'The purple <strong>Last 7 Days</strong> panel on the right keeps a running view of your <strong>QA Tasks, Peer Reviews, PR Feedback and Reports Today</strong>. It updates on its own in the background, so your numbers are always current without leaving the editor.',
+      region:{x:1248,y:196,w:324,h:780}, label:'Last 7 Days · live' },
+    { chip:'Copy & Count', title:'Copy & Count — the heart of the workflow',
+      body:'When your report is ready, <strong>Copy &amp; Count</strong> does two things at once: it saves and counts the report toward your tally, <strong>and copies the full text to your clipboard</strong> — so you can paste it straight into your PACS system. This one button is the core of every report you finish.',
+      region:{x:522,y:290,w:168,h:40}, label:'Copy & Count',
+      tag:'One click = report counted + copied to your clipboard, ready to paste into PACS.' },
+    { chip:'Top bar', title:'Your key toolbar buttons',
+      body:'Across the top: <strong>My Stats</strong> for your numbers, <strong>QA Board</strong> for quality tasks, the <strong>Use AI Report</strong> toggle, <strong>Peer Review</strong>, modality, and <strong>Events</strong>. The <strong>Copy</strong> button (with the count selector) copies without counting when you just need the text.',
+      region:{x:228,y:88,w:828,h:36}, label:'Toolbar' },
+    { chip:'Templates', title:'Find a template — search',
+      body:'Use the <strong>Search templates</strong> box (or press <strong>Ctrl+K</strong>) to find any template by name or keyword. Start typing and the list filters instantly — hit Enter to load it into the editor.',
+      region:{x:48,y:220,w:240,h:44}, label:'Search · Ctrl+K' },
+    { chip:'Templates', title:'Recent & modality templates',
+      body:'Your <strong>Recent Templates</strong> sit at the top (last 5 used, no duplicates), and below them the full <strong>CT Templates</strong> list — Head, Chest, Angio, Spine, Pelvis, Face, MSK Extremity. One click loads any of them.',
+      region:{x:28,y:280,w:280,h:520}, label:'Recent + CT templates' },
+    { chip:'Templates', title:'Use // inside the editor',
+      body:'The fastest way: while typing in the editor, type <strong>//</strong> followed by a shortcut and it expands into a full template — no mouse needed. For example, typing <strong>//normalhead</strong> drops in your entire normal CT head report, then you just change the findings that differ.',
+      region:{x:348,y:452,w:860,h:504}, label:'Type // to expand',
+      tag:'// + shortcut = instant template, right where your cursor is.' },
+    { chip:'AI · Access', title:'AI features are permission-based',
+      body:'The <strong>AI TOOLS</strong> row is switched on <strong>per user by your admin</strong>. If you don\'t see these buttons, they simply haven\'t been enabled for your account yet — ask your administrator.',
+      region:{x:348,y:214,w:860,h:44}, label:'AI TOOLS',
+      tag:'AI is free during the trial. After the trial it is billed based on your management\u2019s plan.' },
+    { chip:'AI · Suggest', title:'Suggest AI — quick recommendations',
+      body:'<strong>Suggest AI</strong> reads your draft and proposes additions or recommendations you can accept into the report with a click — handy for standard follow-up lines and impressions.',
+      region:{x:452,y:222,w:100,h:28}, label:'Suggest AI' },
+    { chip:'AI · Report', title:'Report AI — points to full report',
+      body:'Type or dictate brief points like <strong>“pancreas normal, adrenals normal”</strong> and <strong>Report AI</strong> expands them into properly worded report sentences. Precise in, polished out.',
+      region:{x:562,y:222,w:96,h:28}, label:'Report AI' },
+    { chip:'AI · Image', title:'Image AI — ask about an image',
+      body:'<strong>Image AI</strong> lets you load an image and ask focused questions about it, getting a concise, consultant-style answer to support your read.',
+      region:{x:668,y:222,w:92,h:28}, label:'Image AI' },
+    { chip:'AI · Deep Check', title:'Deep Check — a second read',
+      body:'<strong>Deep Check</strong> reviews your finished report for internal consistency and anything that looks missed — a quiet second pair of eyes before you sign off.',
+      region:{x:770,y:222,w:106,h:28}, label:'Deep Check' },
+    { chip:'AI · Voice', title:'Voice dictation & settings',
+      body:'The <strong>Voice Ready</strong> indicator (top left) shows dictation is armed. Open settings via the ⚙ gear to pick your microphone once. Then dictate naturally — RadGenie transcribes live, tidies spacing, and converts spoken units like “two point five centimeters” into <strong>2.5cm</strong>.',
+      region:{x:8,y:88,w:200,h:36}, label:'Voice Ready' },
+    { chip:'AI · Voice', title:'Basic voice commands',
+      body:'A few spoken commands speed things up: say <strong>“new line”</strong> to break a line, <strong>“next”</strong> to move on, and dictate punctuation naturally. Keep findings short while dictating, then let Report AI expand them.',
+      region:{x:8,y:88,w:200,h:36}, label:'Voice commands',
+      tag:'Dictate findings, then run Report AI to expand them in one pass.' },
+    { chip:'AI · Suggest', title:'Adding a recommendation',
+      body:'When <strong>Suggest AI</strong> offers a recommendation, review it and accept to drop it into your report at the right place — useful for standardised follow-up advice and impression lines.',
+      region:{x:452,y:222,w:100,h:28}, label:'Suggest AI' },
+    { chip:'Macros', title:'Add your own macros',
+      body:'Open <strong>Macros</strong> to save phrases and whole blocks you reuse, each mapped to a short trigger. Build them once and they\'re available in every report.',
+      region:{x:514,y:344,w:100,h:40}, label:'Macros' },
+    { chip:'Hotkeys', title:'Hotkeys are built in',
+      body:'Common actions have <strong>built-in hotkeys</strong>. If you run <strong>AutoHotkey</strong> on your own PC, they integrate seamlessly for even faster keyboard-only reporting.',
+      region:null },
+    { chip:'QA', title:'Respond to QA',
+      body:'When a report comes to you for <strong>quality assurance</strong>, it shows under <strong>QA Board</strong> and in your QA Tasks count. Open it, review the feedback, and respond directly — your reply and grade are recorded against the case.',
+      region:{x:344,y:88,w:104,h:36}, label:'QA Board' },
+    { chip:'Capture', title:'Auto-fill from a screenshot',
+      body:'The round <strong>📋 button</strong> by the action row reads patient details from a screenshot. Snip your screen (Windows: <strong>Win + Shift + S</strong>), then click it — RadGenie fills in patient name, accession, modality and institution for you. No retyping.',
+      region:{x:352,y:344,w:40,h:40}, label:'Screenshot capture',
+      tag:'Snip first, then click the round button — the fields fill themselves.' },
+    { chip:'Chat', title:'Chat directly with the coordinator',
+      body:'The built-in <strong>RadGenie Chat</strong> connects you straight to <strong>HR/Admin</strong> and <strong>Coordinators</strong>. Message them directly for anything you need — no phone, no email, right inside your dashboard.',
+      region:{x:1300,y:270,w:268,h:180}, label:'RadGenie Chat' },
+  ]},
+
+  2: { mock: MOCK_COORD, slot:'slot-2', steps: [
+    { chip:'Your view', title:'When a case is loaded for you',
+      body:'In this workflow a case is prepared and sent to you, so you can focus purely on <strong>reporting</strong>. Everything in this part is <strong>your side</strong> — what you see and do in RadGenie.',
+      region:null },
+    { chip:'Case in', title:'A case arrives in your chat',
+      body:'The case shows up in your chat with its details already filled in — patient, accession, modality and template. You\'ll see a <strong>▶ Load Case</strong> button right on the message.',
+      region:{x:984,y:120,w:420,h:150}, label:'Case received' },
+    { chip:'Load', title:'Click Load Study',
+      body:'Press <strong>▶ Load Case</strong> and RadGenie pulls the accession, institution, modality and patient name straight into your editor — you\'re ready to report in one click.',
+      region:{x:1008,y:300,w:200,h:44}, label:'▶ Load Case' },
+    { chip:'Reject', title:'Or reject a case',
+      body:'Not yours, or sent in error? Use <strong>✕ Reject</strong> and the case is returned to be reassigned — nothing gets stuck on your screen.',
+      region:{x:1224,y:300,w:150,h:44}, label:'✕ Reject' },
+    { chip:'Review', title:'Open the images and report',
+      body:'Open the study, scroll the images, and report using all the usual RadGenie tools — templates, the <strong>//</strong> shortcut, macros, voice and AI — exactly as in Part 1.',
+      region:{x:28,y:40,w:900,h:920}, label:'Images + your tools' },
+    { chip:'Finish', title:'Copy & Count to submit',
+      body:'When you\'re done, click <strong>Copy &amp; Count</strong> — your report is counted and submitted. That\'s your part complete; you focused only on the read and the report.',
+      region:{x:984,y:560,w:280,h:44}, label:'Copy & Count' },
+  ]}
+};
+
+/* ============================================================
+   TOUR ENGINE
+   ============================================================ */
+const stage   = document.getElementById('stage');
+const mount   = document.getElementById('mockMount');
+const ring    = document.getElementById('ring');
+const plabel  = document.getElementById('plabel');
+const elNum   = document.getElementById('stepNum');
+const elChip  = document.getElementById('stepChip');
+const elTitle = document.getElementById('stepTitle');
+const elBody  = document.getElementById('stepBody');
+const elTag   = document.getElementById('stepTag');
+const elProg  = document.getElementById('progress');
+const elPos   = document.getElementById('ctrlPos');
+const elPart  = document.getElementById('ctrlPart');
+const btnPlay = document.getElementById('btnPlay');
+
+let part = 1, idx = 0, playing = false, timer = null, soundOn = true;
+const AUTO_MS = 8200;          // base dwell per step; extended for longer captions
+
+function steps(){ return TOURS[part].steps; }
+
+function renderMock(){
+  mount.innerHTML = TOURS[part].mock;
+  // screenshot slot handling (kept hidden unless an <img> is added)
+  document.querySelectorAll('.screenshot-slot').forEach(s=>s.style.display='none');
 }
 
-function updateCounter() {
-  document.getElementById('stepCounter').textContent = currentStep >= 0 ? `${currentStep + 1} / ${STEPS.length}` : `0 / ${STEPS.length}`;
+function placeSpotlight(region, label){
+  const r = stage.getBoundingClientRect();
+  if(!region){ ring.style.opacity=0; plabel.style.opacity=0; return; }
+  // viewBox is 1600x1000; scale to rendered stage size
+  const sx = r.width/1600, sy = r.height/1000;
+  const x = region.x*sx, y = region.y*sy, w = region.w*sx, h = region.h*sy;
+  ring.style.left = x+'px'; ring.style.top = y+'px';
+  ring.style.width = w+'px'; ring.style.height = h+'px'; ring.style.opacity = 1;
+  if(label){
+    plabel.textContent = label;
+    plabel.style.opacity = 1;
+    // place label above the region, clamped into the stage
+    let lx = x, ly = y - 34;
+    if(ly < 4){ ly = y + h + 10; }
+    plabel.style.left = Math.max(6, Math.min(lx, r.width-plabel.offsetWidth-6))+'px';
+    plabel.style.top = ly+'px';
+  } else { plabel.style.opacity = 0; }
 }
 
-function updateProgress() {
-  const pct = currentStep >= 0 ? ((currentStep + 1) / STEPS.length) * 100 : 0;
-  document.getElementById('progressFill').style.width = pct + '%';
+// Pick the most natural-sounding available voice once (cached).
+let _chosenVoice = null, _voicePicked = false;
+function pickBestVoice(){
+  if(_voicePicked) return _chosenVoice;
+  const vs = window.speechSynthesis.getVoices();
+  if(!vs.length) return null;          // voices not ready yet; try again later
+  _voicePicked = true;
+  // Preference order: modern "natural/online" cloud voices → good named local voices → any en-US → any en.
+  // (Avoids the old robotic "David/Zira/eSpeak" engines when anything better exists.)
+  const score = v => {
+    let s = 0; const n = (v.name||'').toLowerCase();
+    if(/en-us/i.test(v.lang)) s += 5; else if(/^en/i.test(v.lang)) s += 2;
+    if(/natural|online|neural/.test(n)) s += 10;                          // best
+    if(/aria|jenny|guy|ava|andrew|emma|libby|michelle/.test(n)) s += 6;   // MS online names
+    if(/google/.test(n)) s += 5;                                          // Chrome's Google US
+    if(/samantha|alex|siri/.test(n)) s += 4;                              // mac
+    if(/david|zira|mark|hazel|espeak|festival/.test(n)) s -= 4;           // old robotic
+    return s;
+  };
+  _chosenVoice = vs.slice().sort((a,b)=>score(b)-score(a))[0] || null;
+  return _chosenVoice;
 }
 
-function setNarration(text) {
-  document.getElementById('narrationText').textContent = text;
+// Speak text as separate sentence utterances with short gaps, so it has
+// natural pauses instead of one flat robotic run-on.
+let _speakToken = 0;
+function speak(text){
+  if(!soundOn || !('speechSynthesis' in window)) return;
+  window.speechSynthesis.cancel();
+  const clean = text.replace(/<[^>]+>/g,'').replace(/\s+/g,' ').trim();
+  // split into sentence-ish chunks (keep the punctuation)
+  const chunks = clean.match(/[^.!?;:]+[.!?;:]?/g) || [clean];
+  const voice = pickBestVoice();
+  const myToken = ++_speakToken;       // cancels an in-flight queue if a new step starts
+  let i = 0;
+  const sayNext = () => {
+    if(myToken !== _speakToken) return;        // superseded
+    if(i >= chunks.length) return;
+    const part = chunks[i++].trim();
+    if(!part){ sayNext(); return; }
+    const u = new SpeechSynthesisUtterance(part);
+    u.lang = 'en-US';
+    u.rate = 0.92;                              // a touch slower = clearer, less robotic
+    u.pitch = 1.0;
+    if(voice) u.voice = voice;
+    u.onend = () => {
+      if(myToken !== _speakToken) return;
+      // small pause between sentences; a bit longer after a full stop
+      const gap = /[.!?]$/.test(part) ? 320 : 160;
+      setTimeout(sayNext, gap);
+    };
+    // safety: if onend never fires (some engines), continue anyway
+    window.speechSynthesis.speak(u);
+  };
+  sayNext();
 }
 
-function goToStep(n) {
-  if (n >= STEPS.length) { tourEnd(); return; }
-  currentStep = n;
-  const step = STEPS[n];
-  showScreen(step.screen);
-  setNarration(step.text);
-  updateCounter();
-  updateProgress();
-  stepStart = performance.now();
+function buildProgress(){
+  elProg.innerHTML='';
+  steps().forEach((_,i)=>{
+    const b=document.createElement('i');
+    b.onclick=()=>{ go(i); pause(); };
+    elProg.appendChild(b);
+  });
 }
 
-function scheduleNext() {
-  if (!playing) return;
-  const step = STEPS[currentStep];
-  const dur = step.dur / speed;
-  timer = setTimeout(() => {
-    if (playing) goToStep(currentStep + 1);
-    if (playing && currentStep < STEPS.length) scheduleNext();
-  }, dur);
+function paintProgress(){
+  [...elProg.children].forEach((b,i)=>{
+    b.className = i<idx?'done':(i===idx?'active':'');
+  });
 }
 
-function tourPlay() {
-  if (playing) return;
-  playing = true;
-  document.getElementById('btnPlay').style.display = 'none';
-  document.getElementById('btnPause').style.display = '';
-  if (currentStep < 0) goToStep(0);
+function render(){
+  const s = steps()[idx];
+  elNum.textContent = 'STEP '+String(idx+1).padStart(2,'0');
+  elChip.textContent = s.chip;
+  elTitle.textContent = s.title;
+  elBody.innerHTML = s.body;
+  if(s.tag){ elTag.classList.remove('hidden'); elTag.innerHTML = '💡 '+s.tag; }
+  else elTag.classList.add('hidden');
+  elPos.textContent = String(idx+1).padStart(2,'0')+' / '+String(steps().length).padStart(2,'0');
+  elPart.textContent = 'Part '+part;
+  placeSpotlight(s.region, s.label);
+  paintProgress();
+}
+
+function dwellFor(s){
+  // Allow enough time for the slower (0.92 rate) sentence-by-sentence narration
+  // plus the inter-sentence pauses, so audio isn't cut off before it finishes.
+  const txt = s.body.replace(/<[^>]+>/g,'');
+  const words = txt.split(/\s+/).length;
+  const sentences = (txt.match(/[.!?;:]/g)||[]).length + 1;
+  return Math.max(AUTO_MS, Math.min(words*430 + sentences*300, 22000));
+}
+
+function scheduleNext(){
+  clearTimeout(timer);
+  if(!playing) return;
+  timer = setTimeout(()=>{
+    if(idx < steps().length-1){ go(idx+1); }
+    else { pause(); }   // stop at the end
+  }, dwellFor(steps()[idx]));
+}
+
+function go(i){
+  idx = Math.max(0, Math.min(i, steps().length-1));
+  render();
+  if(soundOn) speak(steps()[idx].body); else window.speechSynthesis && window.speechSynthesis.cancel();
   scheduleNext();
 }
 
-function tourPause() {
-  playing = false;
-  document.getElementById('btnPlay').style.display = '';
-  document.getElementById('btnPause').style.display = 'none';
-  clearTimeout(timer);
+function play(){ playing=true; btnPlay.textContent='⏸'; if(soundOn) speak(steps()[idx].body); scheduleNext(); }
+function pause(){ playing=false; btnPlay.textContent='▶'; clearTimeout(timer); if(window.speechSynthesis) window.speechSynthesis.cancel(); }
+function togglePlay(){ playing?pause():play(); }
+
+function switchPart(p){
+  if(p===part) return;
+  part=p; idx=0; pause();
+  document.querySelectorAll('#partToggle button').forEach(b=>b.classList.toggle('active', +b.dataset.part===p));
+  renderMock(); buildProgress(); render();
 }
 
-function tourRestart() {
-  tourPause();
-  currentStep = -1;
-  updateCounter();
-  updateProgress();
-  setNarration('Press Play to begin the tour.');
-  showScreen('s1');
-  setTimeout(tourPlay, 100);
-}
+/* controls */
+btnPlay.onclick = togglePlay;
+document.getElementById('btnNext').onclick    = ()=>{ pause(); go(idx+1); };
+document.getElementById('btnPrev').onclick    = ()=>{ pause(); go(idx-1); };
+document.getElementById('btnRestart').onclick = ()=>{ pause(); go(0); };
+document.getElementById('partToggle').addEventListener('click', e=>{
+  const b=e.target.closest('button'); if(b) switchPart(+b.dataset.part);
+});
+document.getElementById('soundChk').onchange = e=>{
+  soundOn=e.target.checked;
+  if(!soundOn && window.speechSynthesis) window.speechSynthesis.cancel();
+  else if(soundOn && playing) speak(steps()[idx].body);
+};
+window.addEventListener('keydown', e=>{
+  if(e.key==='ArrowRight'){ pause(); go(idx+1); }
+  else if(e.key==='ArrowLeft'){ pause(); go(idx-1); }
+  else if(e.key===' '){ e.preventDefault(); togglePlay(); }
+});
+window.addEventListener('resize', ()=>placeSpotlight(steps()[idx].region, steps()[idx].label));
 
-function tourEnd() {
-  playing = false;
-  document.getElementById('btnPlay').style.display = '';
-  document.getElementById('btnPause').style.display = 'none';
-  clearTimeout(timer);
-  currentStep = STEPS.length - 1;
-  showScreen('s28');
-  setNarration(STEPS[STEPS.length - 1].text);
-  updateCounter();
-  updateProgress();
-}
+/* intro / start */
+document.getElementById('startBtn').onclick = ()=>{
+  document.getElementById('intro').classList.add('hidden');
+  // voices load async in some browsers; nudge then play
+  if(window.speechSynthesis) window.speechSynthesis.getVoices();
+  play();
+};
 
-function changeSpeed(val) {
-  speed = parseFloat(val);
-  if (playing) {
-    clearTimeout(timer);
-    scheduleNext();
-  }
-}
-
-function seekTour(e) {
-  const bar = e.currentTarget;
-  const pct = e.offsetX / bar.offsetWidth;
-  const step = Math.floor(pct * STEPS.length);
-  clearTimeout(timer);
-  goToStep(Math.min(step, STEPS.length - 1));
-  if (playing) scheduleNext();
-}
-
-// Init
-updateCounter();
+/* init */
+renderMock(); buildProgress(); render();
+if(window.speechSynthesis){ window.speechSynthesis.onvoiceschanged = ()=>{ _voicePicked=false; pickBestVoice(); }; }
 </script>
 </body>
 </html>
